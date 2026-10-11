@@ -10,6 +10,7 @@ class Scanner(ABC):
     """Base interface implemented by security scanners."""
 
     name: str = "base"
+    rule_count: int = 0
 
     @abstractmethod
     def scan(self, root: Path) -> list[Finding]:

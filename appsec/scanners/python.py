@@ -11,6 +11,7 @@ class PythonSecurityScanner(Scanner):
     """Detect a small set of high-confidence Python security anti-patterns."""
 
     name = "python-sast"
+    rule_count = 2
 
     def scan(self, root: Path) -> list[Finding]:
         findings: list[Finding] = []

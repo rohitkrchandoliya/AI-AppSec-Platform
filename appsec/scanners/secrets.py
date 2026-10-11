@@ -40,6 +40,7 @@ class SecretScanner(Scanner):
     _MIN_ENTROPY_LENGTH = 20
     _MAX_ENTROPY_LENGTH = 200
     _ENTROPY_RULE_ID = "SEC-006"
+    rule_count = len(_PATTERNS) + 2  # assignment and entropy rules
 
     def scan(self, root: Path) -> list[Finding]:
         findings: list[Finding] = []

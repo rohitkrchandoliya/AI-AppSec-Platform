@@ -92,7 +92,7 @@ def scan(
         dependencies=dependencies,
         dependency_risks=dependency_risks,
         files_scanned=files_scanned,
-        rules_run=12,
+        rules_run=sum(scanner.rule_count for scanner in scanners),
     )
 
     output_modes = sum((json_output, sarif_output, sbom_output))

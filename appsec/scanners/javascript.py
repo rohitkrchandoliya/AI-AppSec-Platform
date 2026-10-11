@@ -61,6 +61,7 @@ class JavaScriptSecurityScanner(Scanner):
             "A03:2021-Injection",
         ),
     )
+    rule_count = len(_RULES)
 
     def scan(self, root: Path) -> list[Finding]:
         findings: list[Finding] = []

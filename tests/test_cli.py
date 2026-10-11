@@ -21,6 +21,7 @@ def test_scan_json_output(tmp_path: Path) -> None:
     assert result.exit_code == 0
     payload = __import__("json").loads(result.stdout)
     assert payload["files_scanned"] == 1
+    assert payload["rules_run"] == 13
     assert payload["findings"][0]["rule_id"] == "JSSEC-004"
     assert payload["findings"][0]["path"] == "sample.js"
     assert payload["dependencies"] == []

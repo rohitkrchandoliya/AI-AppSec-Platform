@@ -46,6 +46,22 @@ urllib3>=2.0
     ]
 
 
+def test_parses_requirement_extras_and_strips_environment_markers(tmp_path: Path) -> None:
+    path = tmp_path / "requirements.txt"
+    path.write_text(
+        'requests[security, socks]>=2.31,<3; python_version >= "3.10"\n'
+        'urllib3==2.2.0; python_version < "3.13"\n',
+        encoding="utf-8",
+    )
+
+    dependencies = parse_requirements(path)
+
+    assert [(item.name, item.specifier) for item in dependencies] == [
+        ("requests", ">=2.31,<3"),
+        ("urllib3", "==2.2.0"),
+    ]
+
+
 def test_discovers_supported_manifests(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text(
         '[project]\ndependencies = ["requests>=2.0"]\n',
@@ -54,7 +70,6 @@ def test_discovers_supported_manifests(tmp_path: Path) -> None:
     (tmp_path / "requirements.txt").write_text("urllib3==2.2.0\n", encoding="utf-8")
     dependencies = discover_dependencies(tmp_path)
     assert {item.name for item in dependencies} == {"requests", "urllib3"}
-
 
 
 def test_parses_uv_and_poetry_lockfiles(tmp_path: Path) -> None:
@@ -91,7 +106,6 @@ def test_parses_pipfile_lock_versions(tmp_path: Path) -> None:
     }
 
 
-
 def test_audits_exact_pins_and_deduplicates_versions(tmp_path: Path) -> None:
     from appsec.models import Dependency, Severity
     from appsec.scanners.advisories import audit_dependencies
@@ -106,8 +120,13 @@ def test_audits_exact_pins_and_deduplicates_versions(tmp_path: Path) -> None:
 
     def fake_query(name: str, version: str) -> list[dict[str, object]]:
         calls.append((name, version))
-        return [{"id": "PYSEC-TEST-1", "summary": "Test advisory",
-                 "affected": [{"ecosystem_specific": {"severity": "HIGH"}}]}]
+        return [
+            {
+                "id": "PYSEC-TEST-1",
+                "summary": "Test advisory",
+                "affected": [{"ecosystem_specific": {"severity": "HIGH"}}],
+            }
+        ]
 
     findings = audit_dependencies(dependencies, tmp_path, query=fake_query)
 
@@ -116,3 +135,23 @@ def test_audits_exact_pins_and_deduplicates_versions(tmp_path: Path) -> None:
     assert findings[0].rule_id == "DEP-PYSEC-TEST-1"
     assert findings[0].severity == Severity.HIGH
     assert findings[0].path == Path("requirements.txt")
+
+
+def test_audits_exact_pin_with_environment_marker(tmp_path: Path) -> None:
+    from appsec.scanners.advisories import audit_dependencies
+
+    requirements = tmp_path / "requirements.txt"
+    requirements.write_text(
+        'requests[security]==2.32.0; python_version >= "3.10"\n',
+        encoding="utf-8",
+    )
+    dependencies = parse_requirements(requirements)
+    calls: list[tuple[str, str]] = []
+
+    def fake_query(name: str, version: str) -> list[dict[str, object]]:
+        calls.append((name, version))
+        return []
+
+    audit_dependencies(dependencies, tmp_path, query=fake_query)
+
+    assert calls == [("requests", "2.32.0")]

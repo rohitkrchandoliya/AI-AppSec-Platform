@@ -7,7 +7,9 @@ from pathlib import Path
 
 from appsec.models import Dependency
 
-_REQUIREMENT = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_.-]*)\s*(.*)$")
+_REQUIREMENT = re.compile(
+    r"^([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\[[A-Za-z0-9_.-]+(?:\s*,\s*[A-Za-z0-9_.-]+)*\])?\s*(.*)$"
+)
 
 
 def parse_requirements(path: Path) -> list[Dependency]:
@@ -24,8 +26,9 @@ def parse_requirements(path: Path) -> list[Dependency]:
             continue
         match = _REQUIREMENT.match(line)
         if match:
+            specifier = match.group(2).split(";", 1)[0].strip()
             dependencies.append(
-                Dependency(name=match.group(1), specifier=match.group(2).strip(), source=str(path))
+                Dependency(name=match.group(1), specifier=specifier, source=str(path))
             )
     return dependencies
 
@@ -61,10 +64,15 @@ def parse_pyproject(path: Path) -> list[Dependency]:
 
 
 def _parse_requirement(value: str, path: Path) -> Dependency | None:
-    match = _REQUIREMENT.match(value.strip())
+    normalized = value.strip().split(";", 1)[0].strip()
+    match = _REQUIREMENT.match(normalized)
     if not match:
         return None
-    return Dependency(name=match.group(1), specifier=match.group(2).strip(), source=str(path))
+    return Dependency(
+        name=match.group(1),
+        specifier=match.group(2).strip(),
+        source=str(path),
+    )
 
 
 def parse_toml_lockfile(path: Path) -> list[Dependency]:

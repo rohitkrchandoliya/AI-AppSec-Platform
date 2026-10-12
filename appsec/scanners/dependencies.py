@@ -12,25 +12,73 @@ _REQUIREMENT = re.compile(
 )
 
 
-def parse_requirements(path: Path) -> list[Dependency]:
-    """Parse a requirements-style file without resolving or installing packages."""
+def parse_requirements(path: Path, root: Path | None = None) -> list[Dependency]:
+    """Parse requirements files and safe, repository-local include directives."""
+    scan_root = (root or path.parent).resolve()
+    return _parse_requirements_file(path.resolve(), scan_root, set())
+
+
+def _parse_requirements_file(
+    path: Path,
+    root: Path,
+    visited: set[Path],
+) -> list[Dependency]:
+    resolved_path = path.resolve()
+    try:
+        resolved_path.relative_to(root)
+    except ValueError:
+        return []
+    if resolved_path in visited:
+        return []
+    visited.add(resolved_path)
+
     dependencies: list[Dependency] = []
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        lines = resolved_path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError):
         return dependencies
 
     for line in lines:
         line = line.split("#", 1)[0].strip()
-        if not line or line.startswith(("-r ", "--", "git+", "http:", "https:")):
+        if not line:
+            continue
+
+        include_target = _include_target(line)
+        if include_target is not None:
+            target = Path(include_target)
+            if target.is_absolute():
+                continue
+            include_path = (resolved_path.parent / target).resolve()
+            try:
+                include_path.relative_to(root)
+            except ValueError:
+                continue
+            dependencies.extend(_parse_requirements_file(include_path, root, visited))
+            continue
+
+        if line.startswith(("--", "git+", "http:", "https:")):
             continue
         match = _REQUIREMENT.match(line)
         if match:
             specifier = match.group(2).split(";", 1)[0].strip()
             dependencies.append(
-                Dependency(name=match.group(1), specifier=specifier, source=str(path))
+                Dependency(name=match.group(1), specifier=specifier, source=str(resolved_path))
             )
     return dependencies
+
+
+def _include_target(line: str) -> str | None:
+    """Return a local include target for common pip requirements directives."""
+    for prefix in ("--requirement=", "--constraint=", "-r=", "-c="):
+        if line.startswith(prefix):
+            target = line[len(prefix) :].strip()
+            return target.strip("\"'") or None
+
+    for prefix in ("--requirement ", "--constraint ", "-r ", "-c "):
+        if line.startswith(prefix):
+            target = line[len(prefix) :].strip()
+            return target.strip("\"'") or None
+    return None
 
 
 def parse_pyproject(path: Path) -> list[Dependency]:
@@ -143,6 +191,6 @@ def discover_dependencies(root: Path) -> list[Dependency]:
     for filename in ("requirements.txt", "requirements-dev.txt", "requirements-test.txt"):
         path = root / filename
         if path.is_file():
-            dependencies.extend(parse_requirements(path))
+            dependencies.extend(parse_requirements(path, root=root))
 
     return dependencies

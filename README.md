@@ -7,7 +7,7 @@ A developer-first application security scanner that combines deterministic sourc
 - **Python SAST:** AST-based rules for `eval()` / `exec()` and `subprocess.run(..., shell=True)`.
 - **JavaScript/TypeScript SAST:** pattern rules for `eval()`, `new Function()`, `exec()` / `execSync()`, `innerHTML`, and React `dangerouslySetInnerHTML`.
 - **Secret detection:** patterns for private-key headers, AWS access key IDs, GitHub tokens, Slack token-like strings, and quoted hardcoded credential assignments. Evidence is redacted by the current secret rules.
-- **Dependency inventory:** parses PEP 621 dependencies and optional groups from `pyproject.toml`, requirements files, and exact versions from `uv.lock`, `poetry.lock`, and `Pipfile.lock`.
+- **Dependency inventory:** parses PEP 621 dependencies and optional groups from `pyproject.toml`, requirements files (including safe local `-r` / `-c` includes), and exact versions from `uv.lock`, `poetry.lock`, and `Pipfile.lock`.
 - **Dependency advisory audit:** opt-in `--audit-dependencies` queries the OSV API for exact-pinned Python dependencies and adds known advisories to findings. Network access is required for this option.
 - **SBOM export:** `--sbom` emits CycloneDX 1.5 JSON from exact-pinned Python dependencies; unresolved version ranges are intentionally excluded.
 - **Dependency risk scoring:** each discovered dependency receives a deterministic 0–100 risk score based on version pinning and OSV-derived advisory severity/count.

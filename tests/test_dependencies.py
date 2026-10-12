@@ -13,7 +13,11 @@ def test_parses_pep621_dependencies(tmp_path: Path) -> None:
     path = tmp_path / "pyproject.toml"
     path.write_text(
         """[project]
-dependencies = ["requests>=2.31,<3", "pydantic>=2.9,<3"]
+dependencies = [
+    "requests>=2.31,<3",
+    "pydantic>=2.9,<3",
+    "httpx[socks]>=0.27; python_version >= '3.10'",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
@@ -24,6 +28,7 @@ dev = ["pytest>=8,<9"]
     assert [(item.name, item.specifier) for item in dependencies] == [
         ("requests", ">=2.31,<3"),
         ("pydantic", ">=2.9,<3"),
+        ("httpx", ">=0.27"),
         ("pytest", ">=8,<9"),
     ]
 
@@ -60,6 +65,34 @@ def test_parses_requirement_extras_and_strips_environment_markers(tmp_path: Path
         ("requests", ">=2.31,<3"),
         ("urllib3", "==2.2.0"),
     ]
+
+
+def test_follows_local_requirement_includes_once_and_blocks_escape(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    nested = root / "nested"
+    nested.mkdir(parents=True)
+    requirements = root / "requirements.txt"
+    base = nested / "base.txt"
+    outside = tmp_path / "outside.txt"
+    escape_reference = (".." + "/") * 2 + "outside.txt"
+
+    requirements.write_text(
+        "-r nested/base.txt\nrequests==2.32.0\n",
+        encoding="utf-8",
+    )
+    base.write_text(
+        f"-r ../requirements.txt\nurllib3==2.2.0\n-r {escape_reference}\n",
+        encoding="utf-8",
+    )
+    outside.write_text("idna==3.8\n", encoding="utf-8")
+
+    dependencies = parse_requirements(requirements, root=root)
+
+    assert [(item.name, item.specifier) for item in dependencies] == [
+        ("urllib3", "==2.2.0"),
+        ("requests", "==2.32.0"),
+    ]
+    assert all(item.name != "idna" for item in dependencies)
 
 
 def test_discovers_supported_manifests(tmp_path: Path) -> None:

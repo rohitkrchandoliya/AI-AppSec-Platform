@@ -240,5 +240,5 @@ def test_missing_and_invalid_utf8_requirement_files_fail_closed(tmp_path: Path) 
     ]
 
     invalid = root / "invalid.txt"
-    invalid.write_bytes(b"requests==2.32.0\\n\\xff\\xfe")
+    invalid.write_bytes(b"requests==2.32.0\n\xff\xfe")
     assert parse_requirements(invalid, root=root) == []

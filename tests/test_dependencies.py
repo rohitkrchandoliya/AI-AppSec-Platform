@@ -184,3 +184,61 @@ def test_audits_exact_pin_with_environment_marker(tmp_path: Path) -> None:
     audit_dependencies(dependencies, tmp_path, query=fake_query)
 
     assert calls == [("requests", "2.32.0")]
+
+
+
+def test_requirement_includes_reject_absolute_and_out_of_root_paths(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    outside = tmp_path / "outside.txt"
+    outside.write_text("must-not-be-read==9.9.9\n", encoding="utf-8")
+    requirements = root / "requirements.txt"
+    requirements.write_text(
+        f"-r ../outside.txt\n-c {outside}\nrequests==2.32.0\n",
+        encoding="utf-8",
+    )
+
+    dependencies = parse_requirements(requirements, root=root)
+
+    assert [(item.name, item.specifier) for item in dependencies] == [
+        ("requests", "==2.32.0"),
+    ]
+
+
+def test_requirement_include_equals_forms_are_followed(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    requirements = root / "requirements.txt"
+    constraints = root / "constraints.txt"
+    nested = root / "nested.txt"
+    requirements.write_text(
+        "--requirement=nested.txt\n--constraint=constraints.txt\n",
+        encoding="utf-8",
+    )
+    nested.write_text("requests==2.32.0\n", encoding="utf-8")
+    constraints.write_text("urllib3==2.2.0\n", encoding="utf-8")
+
+    dependencies = parse_requirements(requirements, root=root)
+
+    assert [(item.name, item.specifier) for item in dependencies] == [
+        ("requests", "==2.32.0"),
+        ("urllib3", "==2.2.0"),
+    ]
+
+
+def test_missing_and_invalid_utf8_requirement_files_fail_closed(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    requirements = root / "requirements.txt"
+    requirements.write_text(
+        "-r missing.txt\nrequests==2.32.0\n",
+        encoding="utf-8",
+    )
+
+    assert [(item.name, item.specifier) for item in parse_requirements(requirements, root=root)] == [
+        ("requests", "==2.32.0"),
+    ]
+
+    invalid = root / "invalid.txt"
+    invalid.write_bytes(b"requests==2.32.0\\n\\xff\\xfe")
+    assert parse_requirements(invalid, root=root) == []

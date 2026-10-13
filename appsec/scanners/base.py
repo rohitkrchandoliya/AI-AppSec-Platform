@@ -1,7 +1,8 @@
 """Scanner interfaces and safe source-tree traversal."""
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Set as AbstractSet
+from collections.abc import Iterator
+from collections.abc import Set as AbstractSet
 from pathlib import Path
 
 from appsec.models import Finding

@@ -1,14 +1,14 @@
 """Scanner interfaces and safe source-tree traversal."""
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Set
+from collections.abc import Iterator, Set as AbstractSet
 from pathlib import Path
 
 from appsec.models import Finding
 
 _EXCLUDED_DIRS = {".git", ".venv", "venv", "__pycache__", "node_modules"}
 
-def iter_source_files(root: Path, extensions: Set[str]) -> Iterator[Path]:
+def iter_source_files(root: Path, extensions: AbstractSet[str]) -> Iterator[Path]:
     """Yield supported files inside ROOT, excluding generated/vendor trees and external symlinks."""
     root_path = root.resolve()
     allowed_extensions = {extension.lower() for extension in extensions}

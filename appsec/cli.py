@@ -12,10 +12,10 @@ from appsec.models import DependencyRisk, ScanResult
 from appsec.risk import dependency_risk_score
 from appsec.sarif import sarif_json
 from appsec.sbom import sbom_json
+from appsec.scanners import JavaScriptSecurityScanner, PythonSecurityScanner, SecretScanner
 from appsec.scanners.advisories import audit_dependencies
 from appsec.scanners.base import iter_source_files
 from appsec.scanners.dependencies import discover_dependencies
-from appsec.scanners import JavaScriptSecurityScanner, PythonSecurityScanner, SecretScanner
 
 app = typer.Typer(help="AI-assisted application security scanner.")
 console = Console()

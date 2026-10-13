@@ -8,6 +8,7 @@ from appsec.models import Finding
 
 _EXCLUDED_DIRS = {".git", ".venv", "venv", "__pycache__", "node_modules"}
 
+
 def iter_source_files(root: Path, extensions: AbstractSet[str]) -> Iterator[Path]:
     """Yield supported files inside ROOT, excluding generated/vendor trees and external symlinks."""
     root_path = root.resolve()
@@ -26,6 +27,7 @@ def iter_source_files(root: Path, extensions: AbstractSet[str]) -> Iterator[Path
         if any(part in _EXCLUDED_DIRS for part in lexical_relative.parts):
             continue
         yield path
+
 
 class Scanner(ABC):
     """Base interface implemented by security scanners."""

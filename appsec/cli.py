@@ -13,6 +13,7 @@ from appsec.risk import dependency_risk_score
 from appsec.sarif import sarif_json
 from appsec.sbom import sbom_json
 from appsec.scanners import JavaScriptSecurityScanner, PythonSecurityScanner, SecretScanner
+from appsec.scanners.base import iter_source_files
 from appsec.scanners.advisories import audit_dependencies
 from appsec.scanners.dependencies import discover_dependencies
 
@@ -57,16 +58,7 @@ def scan(
 
     extensions = SecretScanner._EXTENSIONS | JavaScriptSecurityScanner._EXTENSIONS
     extensions.add(".py")
-    files_scanned = sum(
-        1
-        for candidate in path.rglob("*")
-        if candidate.is_file()
-        and candidate.suffix.lower() in extensions
-        and not any(
-            part in {".git", ".venv", "venv", "__pycache__", "node_modules"}
-            for part in candidate.parts
-        )
-    )
+    files_scanned = sum(1 for _ in iter_source_files(path, extensions))
     dependencies = discover_dependencies(path)
     if audit_dependencies_flag:
         try:

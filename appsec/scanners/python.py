@@ -4,6 +4,7 @@ import ast
 from pathlib import Path
 
 from appsec.models import Finding, Severity
+from appsec.redaction import redact_sensitive_text
 from appsec.scanners.base import Scanner, iter_source_files
 
 
@@ -96,7 +97,7 @@ class PythonSecurityScanner(Scanner):
         owasp: str,
     ) -> Finding:
         line = node.lineno
-        evidence = lines[line - 1].strip() if 0 < line <= len(lines) else None
+        evidence = (\n            redact_sensitive_text(lines[line - 1].strip())\n            if 0 < line <= len(lines)\n            else None\n        )
         return Finding(
             rule_id=rule_id,
             title=title,

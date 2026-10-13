@@ -235,7 +235,8 @@ def test_missing_and_invalid_utf8_requirement_files_fail_closed(tmp_path: Path) 
         encoding="utf-8",
     )
 
-    assert [(item.name, item.specifier) for item in parse_requirements(requirements, root=root)] == [
+    dependencies = parse_requirements(requirements, root=root)
+    assert [(item.name, item.specifier) for item in dependencies] == [
         ("requests", "==2.32.0"),
     ]
 

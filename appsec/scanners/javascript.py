@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import ClassVar
 
 from appsec.models import Finding, Severity
+from appsec.redaction import redact_sensitive_text
 from appsec.scanners.base import Scanner, iter_source_files
 
 
@@ -91,7 +92,7 @@ class JavaScriptSecurityScanner(Scanner):
                             column=match.start() + 1,
                             cwe=cwe,
                             owasp=owasp,
-                            evidence=line.strip()[:500],
+                            evidence=redact_sensitive_text(line.strip())[:500],
                             confidence=0.96,
                         )
                     )

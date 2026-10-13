@@ -97,7 +97,11 @@ class PythonSecurityScanner(Scanner):
         owasp: str,
     ) -> Finding:
         line = node.lineno
-        evidence = (\n            redact_sensitive_text(lines[line - 1].strip())\n            if 0 < line <= len(lines)\n            else None\n        )
+        evidence = (
+            redact_sensitive_text(lines[line - 1].strip())
+            if 0 < line <= len(lines)
+            else None
+        )
         return Finding(
             rule_id=rule_id,
             title=title,

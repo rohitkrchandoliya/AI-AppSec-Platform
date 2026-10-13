@@ -45,3 +45,24 @@ def test_scanners_do_not_follow_source_file_symlinks_outside_root(tmp_path: Path
     assert PythonSecurityScanner().scan(root) == []
     assert JavaScriptSecurityScanner().scan(root) == []
     assert SecretScanner().scan(root) == []
+
+
+def test_sast_evidence_redacts_inline_credentials(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    token = "ghp_" + "A" * 36
+    python_source = root / "vulnerable.py"
+    python_source.write_text(
+        f'value = eval(user_input); API_KEY = "{token}"\n',
+        encoding="utf-8",
+    )
+    js_source = root / "vulnerable.js"
+    js_source.write_text(
+        'eval(input); const password = "production-secret-123";\n',
+        encoding="utf-8",
+    )
+
+    python_findings = PythonSecurityScanner().scan(root)
+    js_findings = JavaScriptSecurityScanner().scan(root)
+    assert token not in (python_findings[0].evidence or "")
+    assert "production-secret-123" not in (js_findings[0].evidence or "")

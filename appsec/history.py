@@ -77,6 +77,8 @@ def create_project(path: Path, name: str) -> dict[str, Any]:
         row = connection.execute(
             "SELECT id, name, created_at FROM projects WHERE id = ?", (cursor.lastrowid,)
         ).fetchone()
+        if row is None:
+            raise RuntimeError("Could not retrieve the created project.")
         return dict(row)
 
 

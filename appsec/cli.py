@@ -110,11 +110,11 @@ def scan(
     sbom_output: bool = typer.Option(
         False, "--sbom", help="Emit a CycloneDX 1.5 SBOM for exact-pinned Python dependencies."
     ),
-    baseline: Path | None = typer.Option(
+    baseline: Path | None = typer.Option(  # noqa: B008
         None, "--baseline", exists=True, file_okay=True, dir_okay=False, readable=True,
         help="Suppress findings already recorded in this baseline JSON file.",
     ),
-    write_baseline: Path | None = typer.Option(
+    write_baseline: Path | None = typer.Option(  # noqa: B008
         None, "--write-baseline", file_okay=True, dir_okay=False,
         help="Write a baseline JSON file from the current findings.",
     ),

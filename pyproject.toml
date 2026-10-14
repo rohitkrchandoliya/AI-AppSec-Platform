@@ -26,6 +26,7 @@ dev = [
 
 [project.scripts]
 appsec = "appsec.cli:app"
+appsec-api = "appsec.api:main"
 
 [tool.setuptools.packages.find]
 include = ["appsec*"]

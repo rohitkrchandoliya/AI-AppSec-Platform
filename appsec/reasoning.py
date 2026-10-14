@@ -3,6 +3,7 @@
 # ruff: noqa: I001
 
 import re
+from pathlib import PurePosixPath
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -151,13 +152,17 @@ def validate_patch_proposal(
     request: PatchProposalRequest, proposal: PatchProposal
 ) -> PatchProposal:
     """Reject mismatched, multi-file, malformed, or path-escaping patch proposals."""
-    from pathlib import PurePosixPath
-
     if proposal.finding_rule_id != request.finding.rule_id:
         raise ValueError("Patch proposal targets a different finding.")
     path = request.finding.path.as_posix()
     normalized = PurePosixPath(path)
-    if normalized.is_absolute() or ".." in normalized.parts or not path or "\n" in path or "\r" in path:
+    if (
+        normalized.is_absolute()
+        or ".." in normalized.parts
+        or not path
+        or "\n" in path
+        or "\r" in path
+    ):
         raise ValueError("Finding path is not safe for a patch proposal.")
 
     lines = proposal.unified_diff.splitlines()

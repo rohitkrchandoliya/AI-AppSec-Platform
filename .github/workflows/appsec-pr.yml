@@ -30,6 +30,10 @@ jobs:
       - name: Scan application code and write SARIF
         run: uv run --locked appsec scan appsec --sarif --fail-on high > appsec-results.sarif
 
+      - name: Emit SARIF findings as workflow annotations
+        if: always() && hashFiles('appsec-results.sarif') != ''
+        run: uv run --locked python -m appsec.ci_report appsec-results.sarif
+
       - name: Upload SARIF report
         if: always() && hashFiles('appsec-results.sarif') != ''
         uses: actions/upload-artifact@v4

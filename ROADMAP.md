@@ -55,7 +55,7 @@ The current release target is a tested local CLI MVP for deterministic source sc
 - [x] SQLite-backed historical scan results and findings
 - [ ] Team workflows
 - [x] Optional shared bearer-token authentication for local API data routes
-- [ ] Per-user authorization, roles, and team access controls
+- [x] Per-user bearer tokens, project roles, membership management, and user revocation (local SQLite)
 - [x] Local usage counters (scan count, files, findings, source bytes; no billing)
 
 ## Quality gates

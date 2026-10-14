@@ -264,3 +264,127 @@ def test_api_rejects_short_configured_token(monkeypatch) -> None:
 
     with pytest.raises(ValueError, match="32 ASCII characters"):
         create_server("127.0.0.1", 0)
+
+
+
+def test_project_team_roles_enforce_scan_and_history_access(tmp_path, monkeypatch) -> None:
+    admin_token = "global-admin-token-longer-than-32-characters"
+    monkeypatch.setenv("APPSEC_API_TOKEN", admin_token)
+    monkeypatch.setenv("APPSEC_DB_PATH", str(tmp_path / "team.sqlite3"))
+    from appsec.api import create_server
+
+    server = create_server("127.0.0.1", 0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base_url = f"http://127.0.0.1:{server.server_port}"
+    try:
+        status, alice_response = _request(
+            base_url + "/users",
+            method="POST",
+            body=json.dumps({"username": "alice"}).encode(),
+            token=admin_token,
+        )
+        assert status == 201
+        alice_token = alice_response["token"]
+        assert "token_hash" not in alice_response["user"]
+
+        status, bob_response = _request(
+            base_url + "/users",
+            method="POST",
+            body=json.dumps({"username": "bob"}).encode(),
+            token=admin_token,
+        )
+        assert status == 201
+        bob_token = bob_response["token"]
+
+        status, project = _request(
+            base_url + "/projects",
+            method="POST",
+            body=json.dumps({"name": "alpha"}).encode(),
+            token=alice_token,
+        )
+        assert status == 201
+        assert project["project"]["name"] == "alpha"
+
+        status, member = _request(
+            base_url + "/projects/alpha/members",
+            method="POST",
+            body=json.dumps({"username": "bob", "role": "viewer"}).encode(),
+            token=alice_token,
+        )
+        assert status == 201
+        assert member["member"]["role"] == "viewer"
+
+        body = json.dumps(
+            {"project": "alpha", "files": {"unsafe.py": "eval(user_input)\n"}}
+        ).encode()
+        status, scan = _request(
+            base_url + "/scan", method="POST", body=body, token=alice_token
+        )
+        assert status == 200
+        scan_id = scan["scan_id"]
+
+        status, projects = _request(base_url + "/projects", token=bob_token)
+        assert status == 200
+        assert projects["projects"][0]["role"] == "viewer"
+
+        status, denied = _request(
+            base_url + "/scan", method="POST", body=body, token=bob_token
+        )
+        assert status == 403
+        assert "editor or administrator" in denied["error"]
+
+        status, history = _request(
+            base_url + "/history?project=alpha", token=bob_token
+        )
+        assert status == 200
+        assert history["scans"][0]["id"] == scan_id
+
+        status, denied = _request(
+            base_url + "/projects/alpha/members",
+            method="POST",
+            body=json.dumps({"username": "alice", "role": "admin"}).encode(),
+            token=bob_token,
+        )
+        assert status == 403
+
+        status, denied = _request(
+            base_url + "/projects/alpha/members/alice",
+            method="DELETE",
+            token=alice_token,
+        )
+        assert status == 409
+        assert "last project administrator" in denied["error"]
+
+        status, users = _request(base_url + "/users", token=admin_token)
+        assert status == 200
+        assert {user["username"] for user in users["users"]} == {"alice", "bob"}
+        assert all("token_hash" not in user for user in users["users"])
+
+        status, denied = _request(
+            base_url + "/projects/alpha/members",
+            method="POST",
+            body=json.dumps({"username": "alice", "role": "viewer"}).encode(),
+            token=alice_token,
+        )
+        assert status == 400
+        assert "last project administrator" in denied["error"]
+
+        status, denied = _request(
+            base_url + "/users/alice", method="DELETE", token=admin_token
+        )
+        assert status == 409
+        assert "last project administrator" in denied["error"]
+
+        status, removed = _request(
+            base_url + "/users/bob", method="DELETE", token=admin_token
+        )
+        assert status == 200
+        assert removed["removed"] is True
+
+        status, denied = _request(base_url + "/projects", token=bob_token)
+        assert status == 401
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)

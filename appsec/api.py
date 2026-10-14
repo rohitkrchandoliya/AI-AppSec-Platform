@@ -399,7 +399,7 @@ class _Handler(BaseHTTPRequestHandler):
                 return
 
             files = _validate_files(payload)
-            project_name: Any = "default"
+            project_name = "default"
             if db_path is not None:
                 project_name = validate_project_name(
                     payload.get("project", "default")

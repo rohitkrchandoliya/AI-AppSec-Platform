@@ -39,7 +39,7 @@ jobs:
 
       - name: Upload SARIF report
         if: always() && hashFiles('appsec-results.sarif') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: appsec-sarif-report
           path: appsec-results.sarif

@@ -2,12 +2,16 @@
 
 import argparse
 import json
+import os
+import sqlite3
 import tempfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path, PurePosixPath
 from typing import Any
+from urllib.parse import parse_qs, urlsplit
 
 from appsec.findings import normalize_findings
+from appsec.history import create_project, get_scan, list_projects, list_scans, save_scan, usage_summary
 from appsec.models import DependencyRisk, ScanResult
 from appsec.risk import dependency_risk_score
 from appsec.scanners import JavaScriptSecurityScanner, PythonSecurityScanner, SecretScanner
@@ -143,16 +147,49 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:
-        if self.path in {"/", "/assets/dashboard.css", "/assets/dashboard.js"}:
-            self._send_asset(self.path)
+        parsed = urlsplit(self.path)
+        route = parsed.path
+        if route in {"/", "/assets/dashboard.css", "/assets/dashboard.js"}:
+            self._send_asset(route)
             return
-        if self.path == "/health":
+        if route == "/health":
             self._send_json(200, {"status": "ok", "service": "ai-appsec-platform"})
+            return
+        database = os.getenv("APPSEC_DB_PATH")
+        if route in {"/projects", "/history", "/usage"} or route.startswith("/history/"):
+            if not database:
+                self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable local history."})
+                return
+            db_path = Path(database).expanduser()
+            try:
+                if route == "/projects":
+                    self._send_json(200, {"projects": list_projects(db_path)})
+                elif route == "/history":
+                    query = parse_qs(parsed.query)
+                    project = query.get("project", [None])[0]
+                    limit = int(query.get("limit", ["50"])[0])
+                    self._send_json(200, {"scans": list_scans(db_path, project_name=project, limit=limit)})
+                elif route == "/usage":
+                    self._send_json(200, usage_summary(db_path))
+                else:
+                    try:
+                        scan_id = int(route.removeprefix("/history/"))
+                    except ValueError:
+                        self._send_json(400, {"error": "Scan ID must be an integer."})
+                        return
+                    scan = get_scan(db_path, scan_id)
+                    if scan is None:
+                        self._send_json(404, {"error": "Scan not found."})
+                    else:
+                        self._send_json(200, scan)
+            except (OSError, sqlite3.Error, ValueError, TypeError):
+                self._send_json(400, {"error": "Could not query local scan history."})
             return
         self._send_json(404, {"error": "Not found."})
 
     def do_POST(self) -> None:
-        if self.path != "/scan":
+        route = urlsplit(self.path).path
+        if route not in {"/scan", "/projects"}:
             self._send_json(404, {"error": "Not found."})
             return
         if self.headers.get_content_type() != "application/json":
@@ -171,10 +208,42 @@ class _Handler(BaseHTTPRequestHandler):
             return
         try:
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            if route == "/projects":
+                database = os.getenv("APPSEC_DB_PATH")
+                if not database:
+                    self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable local projects."})
+                    return
+                if not isinstance(payload, dict) or "name" not in payload:
+                    self._send_json(400, {"error": "Request JSON must contain a project name."})
+                    return
+                try:
+                    project = create_project(Path(database).expanduser(), payload["name"])
+                except sqlite3.IntegrityError:
+                    self._send_json(409, {"error": "A project with that name already exists."})
+                    return
+                self._send_json(201, {"project": project})
+                return
             files = _validate_files(payload)
-            self._send_json(200, scan_files(files))
+            result = scan_files(files)
+            database = os.getenv("APPSEC_DB_PATH")
+            if database:
+                project_name = payload.get("project", "default") if isinstance(payload, dict) else "default"
+                scan_id = save_scan(
+                    Path(database).expanduser(),
+                    project_name,
+                    result,
+                    sum(len(value.encode("utf-8")) for value in files.values()),
+                )
+                result["scan_id"] = scan_id
+                result["project"] = project_name
+            elif isinstance(payload, dict) and "project" in payload:
+                self._send_json(503, {"error": "Set APPSEC_DB_PATH to save scans under a project."})
+                return
+            self._send_json(200, result)
         except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
             self._send_json(400, {"error": str(exc)})
+        except (OSError, sqlite3.Error):
+            self._send_json(500, {"error": "Local scan persistence failed."})
 
     def log_message(self, format: str, *args: object) -> None:
         """Keep request logging concise and avoid reflecting request bodies."""

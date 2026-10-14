@@ -13,6 +13,7 @@ A developer-first application security scanner that combines deterministic sourc
 - **Dependency risk scoring:** each discovered dependency receives a deterministic 0–100 risk score based on version pinning and OSV-derived advisory severity/count.
 - **Finding normalization:** root-relative paths where possible, deterministic sorting, and duplicate removal.
 - **CLI reports:** human-readable output, JSON (`--json`), and SARIF 2.1.0 (`--sarif`). The optional `--fail-on info|low|medium|high|critical` flag exits with status 1 when a finding meets or exceeds the selected severity, enabling CI security gates while keeping JSON/SARIF on stdout.
+- **Finding baselines:** `--write-baseline .appsec-baseline.json` records current findings; `--baseline .appsec-baseline.json` suppresses matching known findings while preserving new findings for the gate. Baseline fingerprints are deterministic, ignore line-number-only shifts, and do not store raw evidence.
 - **Optional AI explanations:** `--explain` asks a configured OpenAI-compatible chat-completions endpoint for explanations, exploitability context, remediation guidance, confidence, and limitations. The deterministic scanner findings remain the source of truth.
 - **Quality checks:** GitHub Actions CI runs Ruff, pytest, and mypy.
 

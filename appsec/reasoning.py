@@ -156,7 +156,7 @@ def validate_patch_proposal(
         raise ValueError("Patch proposal targets a different finding.")
     path = request.finding.path.as_posix()
     normalized = PurePosixPath(path)
-    if normalized.is_absolute() or ".." in normalized.parts or not path:
+    if normalized.is_absolute() or ".." in normalized.parts or not path or "\n" in path or "\r" in path:
         raise ValueError("Finding path is not safe for a patch proposal.")
 
     lines = proposal.unified_diff.splitlines()

@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import threading
 import urllib.error
 import urllib.request
@@ -8,7 +9,14 @@ from typing import Any
 import pytest
 
 from appsec.api import _Handler, scan_files
-from appsec.history import create_project, get_scan, list_projects, list_scans, save_scan, usage_summary
+from appsec.history import (
+    create_project,
+    get_scan,
+    list_projects,
+    list_scans,
+    save_scan,
+    usage_summary,
+)
 
 
 def test_scan_files_returns_normalized_security_findings() -> None:
@@ -118,7 +126,7 @@ def test_local_history_storage_tracks_projects_scans_and_usage(tmp_path) -> None
     database = tmp_path / "state" / "appsec.sqlite3"
     project = create_project(database, "demo-project")
     assert project["name"] == "demo-project"
-    with pytest.raises(Exception):
+    with pytest.raises(sqlite3.IntegrityError):
         create_project(database, "DEMO-PROJECT")
 
     result = scan_files({"src/unsafe.py": "eval(user_input)\n"})

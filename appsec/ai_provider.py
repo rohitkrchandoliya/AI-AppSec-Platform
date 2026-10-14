@@ -31,10 +31,11 @@ class OpenAICompatibleReasoningProvider:
         timeout: float = 20.0,
     ) -> None:
         self._api_key = api_key or os.getenv("OPENAI_API_KEY", "")
-        self._model = model or os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-        self._base_url = (
-            base_url or os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-        ).rstrip("/")
+        self._model = model or os.getenv("OPENAI_MODEL") or "gpt-4.1-mini"
+        configured_base_url = (
+            base_url or os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1"
+        )
+        self._base_url = configured_base_url.rstrip("/")
         self._timeout = timeout
         if not self._api_key:
             raise RuntimeError(

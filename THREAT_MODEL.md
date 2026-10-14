@@ -51,7 +51,7 @@ The MVP is a developer aid, not a complete security assurance system or a hosted
 3. Treat reports as potentially sensitive because paths, dependency names, and code excerpts may be present.
 4. Review findings and false positives before using results as a release gate.
 5. Keep the scanner and its development dependencies updated; CI runs lint, tests, type checks, dependency vulnerability auditing, repository-history secret scanning, and a Docker build/smoke test once those checks pass on the target commit.
-6. Dependency version ranges are currently declared in `pyproject.toml`; a committed, fully resolved dependency lock and pinned container base-image digest remain release-hardening work until added and verified.
+6. `uv.lock` now records resolved dependency versions and hashes, CI installs from the lock in locked mode, and the Docker build uses the same lock plus a pinned Python base-image digest. Keep the lock current and review dependency updates before merging.
 7. For OSV audits, account for outbound network access and validate results before making release decisions.
 
 ## Out of scope for this MVP

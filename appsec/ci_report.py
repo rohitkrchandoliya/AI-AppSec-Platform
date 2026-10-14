@@ -26,12 +26,12 @@ def emit_annotations(document: dict[str, Any]) -> int:
     """Emit one workflow annotation per SARIF result and return the result count."""
     runs = document.get("runs")
     if not isinstance(runs, list):
-        raise ValueError("SARIF document must contain a runs list.")
+        raise TypeError("SARIF document must contain a runs list.")
 
     count = 0
     for run in runs:
         if not isinstance(run, dict) or not isinstance(run.get("results", []), list):
-            raise ValueError("Each SARIF run must contain a results list.")
+            raise TypeError("Each SARIF run must contain a results list.")
         for result in run.get("results", []):
             if not isinstance(result, dict):
                 continue
@@ -72,7 +72,7 @@ def main() -> int:
         if not isinstance(document, dict) or document.get("version") != "2.1.0":
             raise ValueError("Expected a SARIF 2.1.0 document.")
         count = emit_annotations(document)
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
         print(f"Could not emit SARIF annotations: {exc}", file=sys.stderr)
         return 2
     print(f"Emitted {count} AppSec workflow annotation(s).")

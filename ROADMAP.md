@@ -54,7 +54,8 @@ The current release target is a tested local CLI MVP for deterministic source sc
 - [x] Local project registry and project-scoped scan history
 - [x] SQLite-backed historical scan results and findings
 - [ ] Team workflows
-- [ ] Authentication and authorization
+- [x] Optional shared bearer-token authentication for local API data routes
+- [ ] Per-user authorization, roles, and team access controls
 - [x] Local usage counters (scan count, files, findings, source bytes; no billing)
 
 ## Quality gates
@@ -76,4 +77,4 @@ Before calling the CLI MVP production-ready:
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, local baseline/suppression, and guarded review-only AI patch proposals are implemented; GitHub App integration, GitHub API check-run creation, dashboard, authentication/authorization, team workflows, and GitHub App integration remain separate roadmap work. Local project history and usage counters are opt-in via `APPSEC_DB_PATH` and do not provide billing or multi-user access controls.
+- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, local baseline/suppression, and guarded review-only AI patch proposals are implemented; GitHub App integration, GitHub API check-run creation, GitHub App integration, dedicated GitHub API check-run creation, per-user authorization/roles, and team workflows remain separate roadmap work. Local project history and usage counters are opt-in via `APPSEC_DB_PATH`; usage counts are not billing.

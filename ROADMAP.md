@@ -46,7 +46,7 @@ The current release target is a tested local CLI MVP for deterministic source sc
 - [x] Inline workflow annotations generated from SARIF results
 - [x] Severity-based security gate (`--fail-on`; high/critical findings fail the PR scan job)
 - [x] Local JSON baseline and deterministic finding suppression (`--baseline`, `--write-baseline`)
-- [ ] Check-run reporting
+- [x] GitHub API check-run reporting for same-repository pull requests (fork PRs use normal workflow status because their token is read-only)
 
 ## Phase 5 — Product Layer
 - [x] Local JSON API service (`/health`, bounded `POST /scan`; loopback-only default)

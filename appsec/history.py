@@ -456,7 +456,7 @@ def usage_summary(path: Path, *, username: str | None = None) -> dict[str, Any]:
             FROM scans
             """
             + joins
-            + " WHERE created_at >= ?"
+            + " WHERE scans.created_at >= ?"
             + user_condition,
             parameters,
         ).fetchone()

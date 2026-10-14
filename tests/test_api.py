@@ -238,6 +238,10 @@ def test_optional_bearer_token_protects_data_routes(tmp_path, monkeypatch) -> No
         assert status == 401
         assert error["error"] == "Authentication required."
 
+        status, error = _request(base_url + "/projects", token="wrong-token")
+        assert status == 401
+        assert error["error"] == "Authentication required."
+
         status, projects = _request(base_url + "/projects", token=token)
         assert status == 200
         assert projects["projects"] == []

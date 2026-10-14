@@ -144,7 +144,8 @@ def scan(
         help="Exit with status 1 when any finding meets or exceeds this severity.",
     ),
     propose_patches: bool = typer.Option(
-        False, "--propose-patches",
+        False,
+        "--propose-patches",
         help="Request review-only AI patch proposals; proposals are never applied automatically.",
     ),
     explain: bool = typer.Option(
@@ -163,7 +164,9 @@ def scan(
     if explain and (sarif_output or sbom_output):
         raise typer.BadParameter("--explain can be combined with --json, but not --sarif or --sbom.")
     if propose_patches and (sarif_output or sbom_output):
-        raise typer.BadParameter("--propose-patches can be combined with --json, but not --sarif or --sbom.")
+        raise typer.BadParameter(
+            "--propose-patches can be combined with --json, but not --sarif or --sbom."
+        )
     if baseline is not None and write_baseline is not None:
         raise typer.BadParameter("Use either --baseline or --write-baseline, not both.")
     if sbom_output and (baseline is not None or write_baseline is not None):

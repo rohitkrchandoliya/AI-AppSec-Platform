@@ -84,7 +84,7 @@ Use `--json`, `--sarif`, and `--sbom` separately; they cannot be combined in one
 
 ### Local API, dashboard, and history
 
-Run the local API and browser dashboard (loopback-only; no authentication):
+Run the local API and browser dashboard (loopback-only; optional administrator and per-user authentication):
 
 ```bash
 uv run --locked appsec-api --port 8765
@@ -101,6 +101,18 @@ APPSEC_DB_PATH=.appsec-state.sqlite3 APPSEC_API_TOKEN="$APPSEC_API_TOKEN" uv run
 
 With `APPSEC_API_TOKEN` set, data endpoints require `Authorization: Bearer <token>`; the dashboard accepts the token in its password field and does not persist it. This enables `POST /users`, `GET /users`, `DELETE /users/USERNAME`, `POST /projects`, `GET /projects`, `GET /projects/NAME/members`, `POST /projects/NAME/members`, `DELETE /projects/NAME/members/USERNAME`, `GET /history?project=NAME`, `GET /history/SCAN_ID`, and `GET /usage`. To save a scan under a named project, include `"project": "demo"` alongside the `"files"` map in the `POST /scan` JSON body. User tokens are scoped to project memberships; only the shared administrator token can create/revoke users. The SQLite database stores scan results and redacted finding evidence/metadata, not the submitted full source files. Protect the database file. The local API is loopback-only. Set `APPSEC_API_TOKEN` to a strong shared administrator token (at least 32 ASCII characters). The administrator can create individual users with `POST /users`; each user receives a one-time token whose SHA-256 hash is stored in SQLite. The dashboard token field keeps the token in page memory only. Project roles are `admin`, `editor`, and `viewer`: editors/admins can scan, viewers can read results, and project admins can manage membership. The global administrator can list/revoke users. This is a local-first access model, not a hosted identity provider.
 
+### Optional GitHub App check-run integration
+
+The normal GitHub Actions security gate and its dedicated check run work without a custom GitHub App. For repositories that want the check to be owned by an installed GitHub App, the optional `.github/workflows/github-app-check.yml` workflow creates a separate app-owned check on same-repository pull requests.
+
+1. Create/install a GitHub App on this repository with **Contents: read** and **Checks: write** permissions.
+2. Add repository Actions secrets `APP_ID` and `APP_PRIVATE_KEY`.
+3. Open or update a pull request targeting `main`. If the secrets are absent, the optional workflow records a skip summary and the standard security gate remains active.
+4. The workflow runs from the trusted base revision, checks out PR source into a separate `target/` directory strictly as data, and never executes PR scripts, tests, build steps, package hooks, or installs PR dependencies.
+5. The short-lived App token is scoped to this repository and is passed only to the trusted check-run reporter, not to the scanner.
+
+This integration is limited to same-repository pull requests because an App installed on this repository cannot create check runs on a commit owned by an unrelated fork. The feature requires administrator configuration; it cannot create or install the GitHub App automatically.
+ 
 ## How it works
 
 1. The CLI accepts a project directory.
@@ -133,8 +145,8 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 - Dependency inventory, OSV advisory lookup, risk scoring, and SBOM generation currently cover Python manifests and exact-pinned versions only; they do not resolve packages, evaluate every environment marker, or analyze JavaScript, Rust, Go, or other ecosystems.
 - AI reasoning and patch proposals are advisory, may be wrong, require a configured external provider, and are not a substitute for security review. Patch proposals are returned for manual review only and are never applied automatically.
 - The GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, emits escaped workflow annotations, uploads SARIF, and publishes a dedicated GitHub Checks API result for same-repository pull requests. Fork PRs rely on the ordinary workflow status because their token is read-only.
-- The optional local API/dashboard supports project registry, opt-in scan history and usage counters, and optional shared bearer-token authentication. It remains loopback-only and does not provide per-user roles or team access controls. Protect the SQLite history file because finding snippets may still contain sensitive code.
-- This is not a hosted multi-tenant SaaS. A custom GitHub App installation is not required for the standard check-run workflow; per-user authorization/team workflows remain future scope.
+- The optional local API/dashboard supports project registry, opt-in scan history and usage counters, shared administrator authentication, per-user bearer tokens, project roles, and membership management. It remains loopback-only; protect the SQLite history file because finding snippets may still contain sensitive code.
+- This is not a hosted multi-tenant SaaS. The custom GitHub App workflow is optional and requires administrator-provided app credentials; the standard check-run workflow remains active without them.
 
 ## License
 

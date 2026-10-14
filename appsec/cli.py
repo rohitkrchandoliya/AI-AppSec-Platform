@@ -50,6 +50,26 @@ def _source_context(root: Path, finding: Finding) -> list[str]:
     ]
 
 
+def _enforce_severity_gate(findings: list[Finding], threshold: Severity | None) -> None:
+    """Exit unsuccessfully when any finding meets or exceeds the configured severity."""
+    if threshold is None:
+        return
+    rank = {
+        Severity.INFO: 0,
+        Severity.LOW: 1,
+        Severity.MEDIUM: 2,
+        Severity.HIGH: 3,
+        Severity.CRITICAL: 4,
+    }
+    blocking = [finding for finding in findings if rank[finding.severity] >= rank[threshold]]
+    if blocking:
+        console.print(
+            f"[bold red]Security gate failed:[/bold red] {len(blocking)} finding(s) "
+            f"at or above {threshold.value} severity."
+        )
+        raise typer.Exit(code=1)
+
+
 def _explain_findings(root: Path, findings: list[Finding]) -> list[dict[str, object]]:
     """Request and validate opt-in AI explanations for each deterministic finding."""
     if not findings:
@@ -87,6 +107,12 @@ def scan(
     ),
     sbom_output: bool = typer.Option(
         False, "--sbom", help="Emit a CycloneDX 1.5 SBOM for exact-pinned Python dependencies."
+    ),
+    fail_on: Severity | None = typer.Option(
+        None,
+        "--fail-on",
+        case_sensitive=False,
+        help="Exit with status 1 when any finding meets or exceeds this severity.",
     ),
     explain: bool = typer.Option(
         False,
@@ -155,12 +181,14 @@ def scan(
         return
     if sarif_output:
         typer.echo(sarif_json(result))
+        _enforce_severity_gate(findings, fail_on)
         return
     if json_output:
         payload = result.model_dump(mode="json")
         if explain:
             payload["ai_reasoning"] = explanations
         typer.echo(json.dumps(payload, indent=2))
+        _enforce_severity_gate(findings, fail_on)
         return
 
     console.print(f"Scanned [bold]{path.resolve()}[/bold]")
@@ -181,3 +209,5 @@ def scan(
             console.print(f"  Exploitability: {explanation['exploitability']}")
             console.print(f"  Remediation: {explanation['remediation']}")
             console.print(f"  Confidence: {explanation['confidence']}")
+
+    _enforce_severity_gate(findings, fail_on)

@@ -115,16 +115,21 @@ async function refreshProjects() {
     if (!response.ok) throw new Error(data.error || "Projects are unavailable.");
     const selected = projectSelect.value || "default";
     projectSelect.replaceChildren();
-    projectSelect.append(textElement("option", "default"));
-    projectSelect.lastElementChild.value = "default";
+    if (data.is_admin || data.projects.length === 0) {
+      const defaultOption = textElement("option", "default");
+      defaultOption.value = "default";
+      projectSelect.append(defaultOption);
+    }
     for (const project of data.projects) {
       const option = textElement("option", project.name);
       option.value = project.name;
       projectSelect.append(option);
     }
-    projectSelect.value = [...projectSelect.options].some((option) => option.value === selected)
+    const available = [...projectSelect.options];
+    projectSelect.value = available.some((option) => option.value === selected)
       ? selected
-      : "default";
+      : (available[0]?.value || "");
+    projectSelect.disabled = available.length === 0;
   } catch {
     // A missing APPSEC_DB_PATH intentionally disables persistent project features.
   }

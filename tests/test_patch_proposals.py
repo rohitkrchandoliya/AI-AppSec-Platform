@@ -91,3 +91,17 @@ def test_guard_rejects_missing_hunk() -> None:
         GuardedPatchProposalProvider(FakePatchProvider(proposal(diff))).propose_patch(
             build_patch_request(finding())
         )
+
+
+
+def test_guard_rejects_patch_that_looks_like_it_contains_a_secret() -> None:
+    diff = (
+        "--- a/src/app.py\n+++ b/src/app.py\n@@ -1 +1 @@\n"
+        "-API_KEY = \"old-value\"\n+API_KEY = \"ghp_"
+        + "A" * 36
+        + "\"\n"
+    )
+    with pytest.raises(ValueError, match="contain a secret"):
+        GuardedPatchProposalProvider(FakePatchProvider(proposal(diff))).propose_patch(
+            build_patch_request(finding())
+        )

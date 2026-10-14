@@ -78,7 +78,7 @@ jobs:
 
       - name: Publish dedicated GitHub check run
         if: always() && github.event_name == 'pull_request_target' && hashFiles('appsec-new-findings.sarif') != ''
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           SARIF_PATH: appsec-new-findings.sarif
           SCAN_OUTCOME: ${{ steps.compare.outcome }}

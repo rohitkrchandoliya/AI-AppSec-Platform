@@ -65,7 +65,7 @@ The MVP is a developer aid, not a complete security assurance system or a hosted
 
 ## Local API, dashboard, and scan history
 
-The optional `appsec-api` service accepts source text as a JSON file map; it does not accept filesystem paths. Requests have a 1 MB total body limit, 128 KB per-file limit, a 200-file limit, and path traversal/control-character checks before files are written into a temporary directory. The server refuses non-loopback bind addresses because the API has no authentication or authorization. Do not add a reverse proxy or change this boundary without first implementing and reviewing authentication, authorization, rate limiting, and deployment hardening.
+The optional `appsec-api` service accepts source text as a JSON file map; it does not accept filesystem paths. Requests have a 1 MB total body limit, 128 KB per-file limit, a 200-file limit, and path traversal/control-character checks before files are written into a temporary directory. The server refuses non-loopback bind addresses. Optional `APPSEC_API_TOKEN` shared bearer-token authentication can protect data routes; tokens must be at least 32 ASCII characters and are compared with a constant-time comparison. The dashboard keeps the token only in page memory. This is not per-user authorization and does not make the service suitable for network exposure.
 
 The browser dashboard serves only packaged static assets with a restrictive Content Security Policy, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and a no-referrer policy. It uses DOM text insertion rather than rendering scan results as HTML. The API does not enable CORS.
 

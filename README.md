@@ -101,6 +101,18 @@ APPSEC_DB_PATH=.appsec-state.sqlite3 APPSEC_API_TOKEN="$APPSEC_API_TOKEN" uv run
 
 With `APPSEC_API_TOKEN` set, data endpoints require `Authorization: Bearer <token>`; the dashboard accepts the token in its password field and does not persist it. This enables `POST /users`, `GET /users`, `DELETE /users/USERNAME`, `POST /projects`, `GET /projects`, `GET /projects/NAME/members`, `POST /projects/NAME/members`, `DELETE /projects/NAME/members/USERNAME`, `GET /history?project=NAME`, `GET /history/SCAN_ID`, and `GET /usage`. To save a scan under a named project, include `"project": "demo"` alongside the `"files"` map in the `POST /scan` JSON body. User tokens are scoped to project memberships; only the shared administrator token can create/revoke users. The SQLite database stores scan results and redacted finding evidence/metadata, not the submitted full source files. Protect the database file. The local API is loopback-only. Set `APPSEC_API_TOKEN` to a strong shared administrator token (at least 32 ASCII characters). The administrator can create individual users with `POST /users`; each user receives a one-time token whose SHA-256 hash is stored in SQLite. The dashboard token field keeps the token in page memory only. Project roles are `admin`, `editor`, and `viewer`: editors/admins can scan, viewers can read results, and project admins can manage membership. The global administrator can list/revoke users. This is a local-first access model, not a hosted identity provider.
 
+## Optional GitHub App check-run integration
+
+The normal GitHub Actions security gate and its dedicated check run work without a custom GitHub App. To publish an additional check owned by an installed GitHub App for same-repository pull requests:
+
+1. Create/install a GitHub App on this repository with **Contents: read** and **Checks: write** permissions.
+2. Add repository Actions secrets named `APP_ID` and `APP_PRIVATE_KEY`.
+3. Open or update a pull request targeting `main`. If either secret is missing, the optional workflow records a skip summary and the standard security gate remains active.
+4. The workflow runs from the trusted base revision and checks out PR source into a separate `target/` directory as data only. It never executes PR scripts, tests, package hooks, builds, or installs PR dependencies.
+5. The short-lived App token is scoped to this repository and passed only to the trusted check-run reporter, not to the scanner.
+
+This optional integration is limited to same-repository PRs. Cross-repository/fork App installation and webhooks remain post-MVP. A repository administrator must configure the App and secrets; the workflow cannot install an App or create its private key automatically.
+
 ## How it works
 
 1. The CLI accepts a project directory.
@@ -132,7 +144,7 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 - Secret patterns do not cover every provider, token type, encoding, or credential storage pattern.
 - Dependency inventory, OSV advisory lookup, risk scoring, and SBOM generation currently cover Python manifests and exact-pinned versions only; they do not resolve packages, evaluate every environment marker, or analyze JavaScript, Rust, Go, or other ecosystems.
 - AI reasoning and patch proposals are advisory, may be wrong, require a configured external provider, and are not a substitute for security review. Patch proposals are returned for manual review only and are never applied automatically.
-- The GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, emits escaped workflow annotations, uploads SARIF, and publishes a dedicated GitHub Checks API result for same-repository pull requests. Fork PRs rely on the ordinary workflow status because their token is read-only.
+- The GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, emits escaped workflow annotations, uploads SARIF, and publishes a dedicated GitHub Checks API result for same-repository pull requests. The optional app-owned check uses a scoped installation token and scans PR source as data only; fork PRs rely on the ordinary workflow status because their token is read-only.
 - The local API/dashboard supports project registry, per-user tokens, project-scoped roles, opt-in scan history and usage counters. It remains loopback-only and is not a hosted identity provider. Protect the SQLite history file because finding snippets may still contain sensitive code.
 - This is not a hosted multi-tenant SaaS. Same-repository PR check-run reporting uses GitHub Actions permissions; a cross-repository GitHub App installation remains post-MVP.
 

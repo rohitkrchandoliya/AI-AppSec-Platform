@@ -114,6 +114,32 @@ def create_user(path: Path, username: str, token: str) -> dict[str, Any]:
         return dict(row)
 
 
+
+def delete_user(path: Path, username: str) -> bool:
+    """Revoke a user token, preserving at least one administrator per project."""
+    normalized = validate_username(username)
+    with _database(path) as connection:
+        user = connection.execute(
+            "SELECT id FROM users WHERE username = ? COLLATE NOCASE", (normalized,)
+        ).fetchone()
+        if user is None:
+            return False
+        admin_projects = connection.execute(
+            "SELECT project_id FROM project_memberships WHERE user_id = ? AND role = 'admin'",
+            (user["id"],),
+        ).fetchall()
+        for membership in admin_projects:
+            admins = connection.execute(
+                "SELECT COUNT(*) FROM project_memberships WHERE project_id = ? AND role = 'admin'",
+                (membership["project_id"],),
+            ).fetchone()
+            if admins is not None and int(admins[0]) <= 1:
+                raise ValueError(
+                    "Cannot delete the last project administrator; assign another admin first."
+                )
+        connection.execute("DELETE FROM users WHERE id = ?", (user["id"],))
+        return True
+
 def find_user_by_token(path: Path, token: str) -> dict[str, Any] | None:
     """Resolve a user from a bearer token without storing the raw token."""
     if not token or not token.isascii():
@@ -175,7 +201,7 @@ def create_project(
 def add_project_member(
     path: Path, project_name: str, username: str, role: str = "viewer"
 ) -> dict[str, Any]:
-    """Add or update a user's role in a project."""
+    """Add or update a user's role while preserving at least one project admin."""
     project_name = validate_project_name(project_name)
     username = validate_username(username)
     if role not in _PROJECT_ROLES:
@@ -191,6 +217,17 @@ def add_project_member(
             raise ValueError("Project does not exist.")
         if user is None:
             raise ValueError("User does not exist.")
+        existing = connection.execute(
+            "SELECT role FROM project_memberships WHERE project_id = ? AND user_id = ?",
+            (project["id"], user["id"]),
+        ).fetchone()
+        if existing is not None and existing["role"] == "admin" and role != "admin":
+            admins = connection.execute(
+                "SELECT COUNT(*) FROM project_memberships WHERE project_id = ? AND role = 'admin'",
+                (project["id"],),
+            ).fetchone()
+            if admins is not None and int(admins[0]) <= 1:
+                raise ValueError("Cannot demote the last project administrator.")
         connection.execute(
             """
             INSERT INTO project_memberships(project_id, user_id, role, created_at)

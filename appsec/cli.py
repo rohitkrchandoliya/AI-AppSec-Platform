@@ -7,8 +7,9 @@ import typer
 from rich.console import Console
 
 from appsec import __version__
-from appsec.baseline import apply_baseline, load_baseline, write_baseline as save_baseline
 from appsec.ai_provider import OpenAICompatibleReasoningProvider
+from appsec.baseline import apply_baseline, load_baseline
+from appsec.baseline import write_baseline as save_baseline
 from appsec.findings import normalize_findings
 from appsec.models import DependencyRisk, Finding, ScanResult, Severity
 from appsec.reasoning import GuardedReasoningProvider, build_reasoning_request
@@ -172,7 +173,7 @@ def scan(
     if baseline is not None:
         try:
             findings, suppressed_count = apply_baseline(findings, load_baseline(baseline))
-        except ValueError as exc:
+        except (TypeError, ValueError) as exc:
             raise typer.BadParameter(str(exc)) from exc
 
     dependency_risks: list[DependencyRisk] = []

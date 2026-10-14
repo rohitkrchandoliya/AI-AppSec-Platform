@@ -2,11 +2,11 @@
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import pytest
 
-import appsec.ai_provider as ai_provider
+from appsec import ai_provider
 from appsec.models import Finding, Severity
 from appsec.reasoning import ReasoningRequest
 
@@ -15,7 +15,7 @@ class FakeResponse:
     def __init__(self, payload: dict[str, Any]) -> None:
         self._payload = json.dumps(payload).encode("utf-8")
 
-    def __enter__(self) -> "FakeResponse":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args: object) -> None:

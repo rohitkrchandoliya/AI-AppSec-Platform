@@ -61,19 +61,19 @@ The current release target is a tested local CLI MVP for deterministic source sc
 
 Before calling the CLI MVP production-ready:
 
-- [x] Automated tests for scanner and report behavior (CI verification pending)
+- [x] Automated tests for scanner, report, and AI-provider behavior (65 tests passed in CI run #134)
 - [x] Deterministic scanner fixtures
 - [ ] Verify no secrets exist in repository history
 - [ ] Dependency pinning/lock strategy
 - [ ] Reproducible Docker build
-- [ ] CI security checks
+- [ ] CI security checks beyond lint/tests/type checking
 - [x] Documented threat model (`THREAT_MODEL.md`)
 - [x] Documented limitations and false-positive handling (README and threat model)
-- [ ] Final release smoke test on the merged main branch
+- [x] Release smoke checks on merged main (CI run #134: Ruff, 65 pytest tests, and mypy on 17 source files all passed)
 
 ## Release discipline
 
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
-- A pull request being merged is not evidence that its CI passed.
+- A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- Do not claim production readiness while any required quality gate remains unchecked.
+- This MVP is usable for local testing, but do not call it production-ready until the remaining quality gates are addressed.

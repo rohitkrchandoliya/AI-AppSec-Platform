@@ -12,6 +12,7 @@ A developer-first application security scanner that combines deterministic sourc
 - **SBOM export:** `--sbom` emits CycloneDX 1.5 JSON from exact-pinned Python dependencies; unresolved version ranges are intentionally excluded.
 - **Dependency risk scoring:** each discovered dependency receives a deterministic 0–100 risk score based on version pinning and OSV-derived advisory severity/count.
 - **Finding normalization:** root-relative paths where possible, deterministic sorting, and duplicate removal.
+- **Local JSON API:** optional standard-library HTTP service exposes `/health` and `POST /scan` for bounded in-memory source files; it does not accept filesystem paths and defaults to loopback-only binding.
 - **CLI reports:** human-readable output, JSON (`--json`), and SARIF 2.1.0 (`--sarif`). The optional `--fail-on info|low|medium|high|critical` flag exits with status 1 when a finding meets or exceeds the selected severity, enabling CI security gates while keeping JSON/SARIF on stdout.
 - **Finding baselines:** `--write-baseline .appsec-baseline.json` records current findings; `--baseline .appsec-baseline.json` suppresses matching known findings while preserving new findings for the gate. Baseline fingerprints are deterministic, ignore line-number-only shifts, and do not store raw evidence.
 - **Optional AI explanations:** `--explain` asks a configured OpenAI-compatible chat-completions endpoint for explanations, exploitability context, remediation guidance, confidence, and limitations. The deterministic scanner findings remain the source of truth.
@@ -110,7 +111,7 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 - Secret patterns do not cover every provider, token type, encoding, or credential storage pattern.
 - Dependency inventory, OSV advisory lookup, risk scoring, and SBOM generation currently cover Python manifests and exact-pinned versions only; they do not resolve packages, evaluate every environment marker, or analyze JavaScript, Rust, Go, or other ecosystems.
 - AI reasoning and patch proposals are advisory, may be wrong, require a configured external provider, and are not a substitute for security review. Patch proposals are returned for manual review only and are never applied automatically.
-- The initial GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, emits escaped GitHub Actions check annotations from SARIF, and uploads a SARIF artifact. GitHub App installation, inline PR annotations/check-run reporting, baselines/suppressions, API, dashboard, authentication, and team workflows are not implemented yet.
+- The initial GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, emits escaped GitHub Actions check annotations from SARIF, and uploads a SARIF artifact. GitHub App installation, GitHub API check-run creation, dashboard, project management, authentication/authorization, historical findings, team workflows, and usage metering are not implemented yet.
 - Production readiness still requires dependency pinning/lock strategy, reproducible builds, CI security checks, repository-history review, and a green final release verification on the merged main branch.
 
 ## License

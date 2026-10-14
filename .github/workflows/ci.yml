@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -30,6 +32,16 @@ jobs:
 
       - name: Type check
         run: mypy appsec
+
+      - name: Audit Python dependencies
+        run: |
+          python -m pip install pip-audit
+          pip-audit
+
+      - name: Scan repository history for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build production Docker image
         run: docker build --pull --tag ai-appsec-platform:ci .

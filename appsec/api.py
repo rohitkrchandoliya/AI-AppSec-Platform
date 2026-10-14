@@ -112,7 +112,40 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_asset(self, name: str) -> None:
+        assets = {
+            "/": ("web/index.html", "text/html; charset=utf-8"),
+            "/assets/dashboard.css": ("web/dashboard.css", "text/css; charset=utf-8"),
+            "/assets/dashboard.js": ("web/dashboard.js", "application/javascript; charset=utf-8"),
+        }
+        entry = assets.get(name)
+        if entry is None:
+            self._send_json(404, {"error": "Not found."})
+            return
+        relative_path, content_type = entry
+        try:
+            body = (Path(__file__).parent / relative_path).read_bytes()
+        except OSError:
+            self._send_json(500, {"error": "Dashboard asset is unavailable."})
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; "
+            "object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+        )
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self) -> None:
+        if self.path in {"/", "/assets/dashboard.css", "/assets/dashboard.js"}:
+            self._send_asset(self.path)
+            return
         if self.path == "/health":
             self._send_json(200, {"status": "ok", "service": "ai-appsec-platform"})
             return

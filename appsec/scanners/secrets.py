@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import ClassVar
 
 from appsec.models import Finding, Severity
-from appsec.scanners.base import Scanner
+from appsec.scanners.base import Scanner, iter_source_files
 
 
 class SecretScanner(Scanner):
@@ -44,11 +44,7 @@ class SecretScanner(Scanner):
 
     def scan(self, root: Path) -> list[Finding]:
         findings: list[Finding] = []
-        for path in sorted(root.rglob("*")):
-            if not path.is_file() or path.suffix.lower() not in self._EXTENSIONS:
-                continue
-            if any(part in {".git", ".venv", "venv", "__pycache__", "node_modules"} for part in path.parts):
-                continue
+        for path in iter_source_files(root, self._EXTENSIONS):
             findings.extend(self._scan_file(path))
         return findings
 

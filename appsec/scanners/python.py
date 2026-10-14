@@ -4,7 +4,8 @@ import ast
 from pathlib import Path
 
 from appsec.models import Finding, Severity
-from appsec.scanners.base import Scanner
+from appsec.redaction import redact_sensitive_text
+from appsec.scanners.base import Scanner, iter_source_files
 
 
 class PythonSecurityScanner(Scanner):
@@ -15,9 +16,7 @@ class PythonSecurityScanner(Scanner):
 
     def scan(self, root: Path) -> list[Finding]:
         findings: list[Finding] = []
-        for path in sorted(root.rglob("*.py")):
-            if any(part in {".git", ".venv", "venv", "__pycache__", "node_modules"} for part in path.parts):
-                continue
+        for path in iter_source_files(root, {".py"}):
             findings.extend(self._scan_file(path))
         return findings
 
@@ -98,7 +97,11 @@ class PythonSecurityScanner(Scanner):
         owasp: str,
     ) -> Finding:
         line = node.lineno
-        evidence = lines[line - 1].strip() if 0 < line <= len(lines) else None
+        evidence = (
+            redact_sensitive_text(lines[line - 1].strip())
+            if 0 < line <= len(lines)
+            else None
+        )
         return Finding(
             rule_id=rule_id,
             title=title,

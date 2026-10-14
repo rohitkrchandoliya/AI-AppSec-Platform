@@ -89,9 +89,9 @@ See [ROADMAP.md](ROADMAP.md) for the implementation plan and production-readines
 - JavaScript/TypeScript analysis is regex-based and may produce false positives or miss indirect/obfuscated cases.
 - Secret patterns do not cover every provider, token type, encoding, or credential storage pattern.
 - Dependency inventory, OSV advisory lookup, risk scoring, and SBOM generation currently cover Python manifests and exact-pinned versions only; they do not resolve packages, evaluate every environment marker, or analyze JavaScript, Rust, Go, or other ecosystems.
-- AI reasoning/remediation, GitHub PR integration, API, dashboard, authentication, and team workflows are not implemented yet.
+- A provider-neutral reasoning contract and response-validation prototype exists, but no AI provider adapter or scan-CLI reasoning workflow is integrated yet. GitHub PR integration, API, dashboard, authentication, and team workflows are not implemented yet.
 - Production readiness requires broader fixtures and coverage, dependency pinning/lock strategy, a documented threat model, reproducible builds, and repository governance.
 
 ## License
 
-The project metadata declares MIT licensing. A license file should be included in the repository before distributing it as an MIT-licensed project.
+The project metadata declares MIT licensing. The repository includes the MIT license in `LICENSE`.

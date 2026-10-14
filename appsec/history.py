@@ -234,17 +234,31 @@ def list_project_members(path: Path, project_name: str) -> list[dict[str, Any]]:
 
 
 def remove_project_member(path: Path, project_name: str, username: str) -> bool:
-    """Remove a user's membership from a project."""
+    """Remove a member but never leave a project without an administrator."""
     with _database(path) as connection:
-        cursor = connection.execute(
+        member = connection.execute(
             """
-            DELETE FROM project_memberships
-            WHERE project_id = (SELECT id FROM projects WHERE name = ? COLLATE NOCASE)
-              AND user_id = (SELECT id FROM users WHERE username = ? COLLATE NOCASE)
+            SELECT p.id AS project_id, u.id AS user_id, m.role
+            FROM projects p JOIN project_memberships m ON m.project_id = p.id
+            JOIN users u ON u.id = m.user_id
+            WHERE p.name = ? COLLATE NOCASE AND u.username = ? COLLATE NOCASE
             """,
             (project_name, username),
+        ).fetchone()
+        if member is None:
+            return False
+        if member["role"] == "admin":
+            admins = connection.execute(
+                "SELECT COUNT(*) FROM project_memberships WHERE project_id = ? AND role = 'admin'",
+                (member["project_id"],),
+            ).fetchone()
+            if admins is not None and int(admins[0]) <= 1:
+                raise ValueError("Cannot remove the last project administrator.")
+        connection.execute(
+            "DELETE FROM project_memberships WHERE project_id = ? AND user_id = ?",
+            (member["project_id"], member["user_id"]),
         )
-        return cursor.rowcount > 0
+        return True
 
 
 def list_projects(path: Path, *, username: str | None = None) -> list[dict[str, Any]]:

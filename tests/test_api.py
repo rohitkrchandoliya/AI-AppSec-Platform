@@ -43,14 +43,18 @@ def test_scan_files_enforces_file_count_and_size() -> None:
         scan_files({"large.py": "x" * 128_001})
 
 
-def _request(url: str, *, method: str = "GET", body: bytes | None = None,
-             content_type: str = "application/json") -> tuple[int, dict[str, Any]]:
-    request = urllib.request.Request(
-        url,
-        data=body,
-        method=method,
-        headers={"Content-Type": content_type} if body is not None else {},
-    )
+def _request(
+    url: str,
+    *,
+    method: str = "GET",
+    body: bytes | None = None,
+    content_type: str = "application/json",
+    token: str | None = None,
+) -> tuple[int, dict[str, Any]]:
+    headers = {"Content-Type": content_type} if body is not None else {}
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    request = urllib.request.Request(url, data=body, method=method, headers=headers)
     try:
         response = urllib.request.urlopen(request, timeout=3)
     except urllib.error.HTTPError as exc:
@@ -212,3 +216,47 @@ def test_api_refuses_non_loopback_binding() -> None:
 
     with pytest.raises(ValueError, match="loopback"):
         create_server("0.0.0.0", 8765)
+
+
+
+def test_optional_bearer_token_protects_data_routes(tmp_path, monkeypatch) -> None:
+    token = "local-test-token-that-is-longer-than-32-characters"
+    monkeypatch.setenv("APPSEC_API_TOKEN", token)
+    monkeypatch.setenv("APPSEC_DB_PATH", str(tmp_path / "appsec.sqlite3"))
+    from appsec.api import create_server
+
+    server = create_server("127.0.0.1", 0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base_url = f"http://127.0.0.1:{server.server_port}"
+    try:
+        status, health = _request(base_url + "/health")
+        assert status == 200
+        assert health["status"] == "ok"
+
+        status, error = _request(base_url + "/projects")
+        assert status == 401
+        assert error["error"] == "Authentication required."
+
+        status, projects = _request(base_url + "/projects", token=token)
+        assert status == 200
+        assert projects["projects"] == []
+
+        body = json.dumps({"files": {"safe.py": "print('ok')"}}).encode()
+        status, error = _request(base_url + "/scan", method="POST", body=body)
+        assert status == 401
+        status, result = _request(base_url + "/scan", method="POST", body=body, token=token)
+        assert status == 200
+        assert result["project"] == "default"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
+def test_api_rejects_short_configured_token(monkeypatch) -> None:
+    monkeypatch.setenv("APPSEC_API_TOKEN", "too-short")
+    from appsec.api import create_server
+
+    with pytest.raises(ValueError, match="32 characters"):
+        create_server("127.0.0.1", 0)

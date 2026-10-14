@@ -2,8 +2,8 @@
 
 **Repository:** `rohitkrchandoliya/ai-appsec-platform`  
 **Branch reviewed:** `main`  
-**Last verified main commit:** `b2813c6a1f64c2277d921a097c02b57c5c152102`  
-**Last verified post-merge CI:** [Run 38520944215](https://github.com/rohitkrchandoliya/ai-appsec-platform/actions/runs/38520944215) — passed.
+**Last verified main commit:** `5c1b169aa203414dc6a64cc4a55f441b1e9d5942`  
+**Last verified post-merge CI:** [Run 38521872939](https://github.com/rohitkrchandoliya/ai-appsec-platform/actions/runs/38521872939) — passed.
 
 ## Release status
 

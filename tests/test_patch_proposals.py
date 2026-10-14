@@ -86,7 +86,7 @@ def test_guard_rejects_multi_file_patch() -> None:
 
 
 def test_guard_rejects_missing_hunk() -> None:
-    diff = "--- a/src/app.py\n+++ b/src/app.py\nold text\nnew text\n"
+    diff = "--- a/src/app.py\n+++ b/src/app.py\n context\n-old text\n+new text\n"
     with pytest.raises(ValueError, match="hunk"):
         GuardedPatchProposalProvider(FakePatchProvider(proposal(diff))).propose_patch(
             build_patch_request(finding())

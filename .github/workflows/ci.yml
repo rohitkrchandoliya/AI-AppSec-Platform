@@ -47,7 +47,7 @@ jobs:
 
       - name: Audit full Git history for secrets
         run: |
-          GITLEAKS_BIN="$(find /tmp -type f -path '/tmp/gitleaks-*/gitleaks' -perm -111 -print -quit)"
+          GITLEAKS_BIN="$(find /tmp/gitleaks-* -maxdepth 1 -type f -name gitleaks -perm -111 -print -quit 2>/dev/null || true)"
           test -n "$GITLEAKS_BIN"
           "$GITLEAKS_BIN" detect --source . --redact --exit-code 1 --log-opts="--all"
 

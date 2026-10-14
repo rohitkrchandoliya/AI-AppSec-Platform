@@ -53,12 +53,12 @@ def load_baseline(path: Path) -> set[str]:
         raise ValueError(f"Unsupported finding baseline schema; expected version {_SCHEMA_VERSION}.")
     records = payload.get("findings")
     if not isinstance(records, list):
-        raise ValueError("Finding baseline must contain a 'findings' list.")
+        raise TypeError("Finding baseline must contain a 'findings' list.")
 
     fingerprints: set[str] = set()
     for index, record in enumerate(records):
         if not isinstance(record, dict):
-            raise ValueError(f"Baseline finding at index {index} must be an object.")
+            raise TypeError(f"Baseline finding at index {index} must be an object.")
         fingerprint = record.get("fingerprint")
         if not isinstance(fingerprint, str) or not _FINGERPRINT_RE.fullmatch(fingerprint):
             raise ValueError(f"Baseline finding at index {index} has an invalid fingerprint.")

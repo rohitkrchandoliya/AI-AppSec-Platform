@@ -11,7 +11,14 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from appsec.findings import normalize_findings
-from appsec.history import create_project, get_scan, list_projects, list_scans, save_scan, usage_summary
+from appsec.history import (
+    create_project,
+    get_scan,
+    list_projects,
+    list_scans,
+    save_scan,
+    usage_summary,
+)
 from appsec.models import DependencyRisk, ScanResult
 from appsec.risk import dependency_risk_score
 from appsec.scanners import JavaScriptSecurityScanner, PythonSecurityScanner, SecretScanner

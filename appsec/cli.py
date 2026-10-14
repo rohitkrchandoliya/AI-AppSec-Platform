@@ -7,8 +7,11 @@ import typer
 from rich.console import Console
 
 from appsec import __version__
+from appsec.ai_provider import OpenAICompatibleReasoningProvider
 from appsec.findings import normalize_findings
-from appsec.models import DependencyRisk, ScanResult
+from appsec.models import DependencyRisk, Finding, ScanResult
+from appsec.reasoning import GuardedReasoningProvider, build_reasoning_request
+from appsec.redaction import redact_sensitive_text
 from appsec.risk import dependency_risk_score
 from appsec.sarif import sarif_json
 from appsec.sbom import sbom_json
@@ -25,6 +28,45 @@ console = Console()
 def version() -> None:
     """Show the platform version."""
     console.print(f"ai-appsec-platform {__version__}")
+
+
+def _source_context(root: Path, finding: Finding) -> list[str]:
+    """Return a small, redacted source window only when the path remains inside ROOT."""
+    resolved_root = root.resolve()
+    candidate = (resolved_root / finding.path).resolve()
+    if not candidate.is_relative_to(resolved_root):
+        return []
+
+    try:
+        lines = candidate.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return []
+
+    first = max(1, finding.line - 2)
+    last = min(len(lines), finding.line + 2)
+    return [
+        f"{line_number}: {redact_sensitive_text(lines[line_number - 1])}"
+        for line_number in range(first, last + 1)
+    ]
+
+
+def _explain_findings(root: Path, findings: list[Finding]) -> list[dict[str, object]]:
+    """Request and validate opt-in AI explanations for each deterministic finding."""
+    if not findings:
+        return []
+
+    provider = GuardedReasoningProvider(OpenAICompatibleReasoningProvider())
+    explanations: list[dict[str, object]] = []
+    for finding in findings:
+        references = [value for value in (finding.cwe, finding.owasp) if value]
+        request = build_reasoning_request(
+            finding,
+            source_context=_source_context(root, finding),
+            references=references,
+        )
+        response = provider.explain(request)
+        explanations.append(response.model_dump(mode="json"))
+    return explanations
 
 
 @app.command()
@@ -46,8 +88,22 @@ def scan(
     sbom_output: bool = typer.Option(
         False, "--sbom", help="Emit a CycloneDX 1.5 SBOM for exact-pinned Python dependencies."
     ),
+    explain: bool = typer.Option(
+        False,
+        "--explain",
+        help=(
+            "Add evidence-grounded AI explanations. Sends redacted finding/source context "
+            "to the configured OpenAI-compatible endpoint."
+        ),
+    ),
 ) -> None:
     """Run deterministic security scanners against PATH."""
+    output_modes = sum((json_output, sarif_output, sbom_output))
+    if output_modes > 1:
+        raise typer.BadParameter("Use only one of --json, --sarif, or --sbom.")
+    if explain and (sarif_output or sbom_output):
+        raise typer.BadParameter("--explain can be combined with --json, but not --sarif or --sbom.")
+
     scanners = (
         PythonSecurityScanner(),
         JavaScriptSecurityScanner(),
@@ -87,9 +143,13 @@ def scan(
         rules_run=sum(scanner.rule_count for scanner in scanners),
     )
 
-    output_modes = sum((json_output, sarif_output, sbom_output))
-    if output_modes > 1:
-        raise typer.BadParameter("Use only one of --json, --sarif, or --sbom.")
+    explanations: list[dict[str, object]] = []
+    if explain:
+        try:
+            explanations = _explain_findings(path, findings)
+        except (RuntimeError, ValueError) as exc:
+            raise typer.BadParameter(f"AI explanation failed: {exc}") from exc
+
     if sbom_output:
         typer.echo(sbom_json(dependencies, path))
         return
@@ -97,15 +157,27 @@ def scan(
         typer.echo(sarif_json(result))
         return
     if json_output:
-        typer.echo(json.dumps(result.model_dump(mode="json"), indent=2))
+        payload = result.model_dump(mode="json")
+        if explain:
+            payload["ai_reasoning"] = explanations
+        typer.echo(json.dumps(payload, indent=2))
         return
 
     console.print(f"Scanned [bold]{path.resolve()}[/bold]")
     console.print(
         f"Files: {result.files_scanned} | Findings: {len(result.findings)} | Rules: {result.rules_run}"
     )
+    explanation_by_rule = {
+        item["finding_rule_id"]: item for item in explanations if "finding_rule_id" in item
+    }
     for finding in result.findings:
         console.print(
             f"[{finding.severity.value}] {finding.rule_id} "
             f"{finding.path}:{finding.line} — {finding.title}"
         )
+        explanation = explanation_by_rule.get(finding.rule_id)
+        if explanation:
+            console.print(f"  Explanation: {explanation['explanation']}")
+            console.print(f"  Exploitability: {explanation['exploitability']}")
+            console.print(f"  Remediation: {explanation['remediation']}")
+            console.print(f"  Confidence: {explanation['confidence']}")

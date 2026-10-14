@@ -1,5 +1,9 @@
 # Roadmap
 
+## MVP release scope
+
+The current release target is a tested local CLI MVP for deterministic source scanning, secret detection, Python dependency inventory/advisories, machine-readable reports, and opt-in AI explanations. It is not a GitHub App or hosted SaaS platform. Do not describe pending phases as implemented.
+
 ## Phase 0 — Foundation
 - [x] Repository structure
 - [x] Domain models
@@ -28,12 +32,13 @@
 - [x] Deterministic dependency risk scoring
 
 ## Phase 3 — AI Security Reasoning
-- [ ] Provider abstraction
-- [ ] Finding explanation
-- [ ] Exploitability/context analysis
-- [ ] Remediation generation
+- [x] Provider-neutral reasoning request/response contract
+- [x] OpenAI-compatible chat-completions adapter (opt-in)
+- [x] Finding explanation integrated into CLI (`--explain`)
+- [x] Exploitability/context analysis integrated into CLI
+- [x] Remediation guidance integrated into CLI
 - [ ] Patch proposal generation
-- [ ] Guardrails against hallucinated findings
+- [x] Guardrails for finding identity, supplied references, and unsupported CVE/CWE identifiers
 
 ## Phase 4 — GitHub Developer Workflow
 - [ ] GitHub App integration
@@ -54,13 +59,21 @@
 
 ## Quality gates
 
-Before calling the MVP production-ready:
+Before calling the CLI MVP production-ready:
 
-- meaningful automated test coverage
-- deterministic scanner fixtures
-- no secrets in repository history
-- dependency pinning/lock strategy
-- reproducible Docker build
-- CI security checks
-- documented threat model
-- documented limitations and false-positive handling
+- [x] Automated tests for scanner and report behavior (CI verification pending)
+- [x] Deterministic scanner fixtures
+- [ ] Verify no secrets exist in repository history
+- [ ] Dependency pinning/lock strategy
+- [ ] Reproducible Docker build
+- [ ] CI security checks
+- [x] Documented threat model (`THREAT_MODEL.md`)
+- [x] Documented limitations and false-positive handling (README and threat model)
+- [ ] Final release smoke test on the merged main branch
+
+## Release discipline
+
+- A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
+- A pull request being merged is not evidence that its CI passed.
+- AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
+- Do not claim production readiness while any required quality gate remains unchecked.

@@ -46,7 +46,7 @@ The current release target is a tested local CLI MVP for deterministic source sc
 - [x] Inline workflow annotations generated from SARIF results
 - [x] Severity-based security gate (`--fail-on`; high/critical findings fail the PR scan job)
 - [x] Local JSON baseline and deterministic finding suppression (`--baseline`, `--write-baseline`)
-- [ ] Check-run reporting
+- [x] GitHub API check-run reporting for same-repository pull requests (dedicated `AI AppSec Security Gate`; fork PRs use the normal workflow status because their token is read-only)
 
 ## Phase 5 — Product Layer
 - [x] Local JSON API service (`/health`, bounded `POST /scan`; loopback-only default)
@@ -77,4 +77,4 @@ Before calling the CLI MVP production-ready:
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, local baseline/suppression, and guarded review-only AI patch proposals are implemented; GitHub App integration, GitHub API check-run creation, GitHub App integration, dedicated GitHub API check-run creation, per-user authorization/roles, and team workflows remain separate roadmap work. Local project history and usage counters are opt-in via `APPSEC_DB_PATH`; usage counts are not billing.
+- The local CLI quality gates have passed on main in subsequent CI runs; always verify the latest merged-main run before release. The PR scan workflow, severity gate, local baseline/suppression, guarded review-only AI patch proposals, local API/dashboard, project registry, scan history, usage counters, optional shared bearer-token authentication, and dedicated GitHub API check-run reporting are implemented. GitHub App installation and per-user authorization/team workflows remain separate roadmap work. Local history and usage counters are opt-in via `APPSEC_DB_PATH`; usage counts are not billing.

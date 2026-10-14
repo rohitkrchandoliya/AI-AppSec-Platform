@@ -1,0 +1,99 @@
+name: Reusable AI AppSec Scan
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  scan:
+    name: AI AppSec scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Trusted scanner code is checked out separately from the repository being scanned.
+      - name: Check out scanner
+        uses: actions/checkout@v4
+        with:
+          repository: rohitkrchandoliya/ai-appsec-platform
+          ref: main
+          path: scanner
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked scanner dependencies
+        working-directory: scanner
+        run: |
+          python -m pip install uv==0.13.0
+          uv sync --locked --all-extras
+
+      # The target repository is data only: never run its scripts, tests, or build hooks.
+      - name: Check out pull request source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: target
+          persist-credentials: false
+
+      - name: Scan pull request source
+        id: scan
+        continue-on-error: true
+        working-directory: scanner
+        run: uv run --locked appsec scan ../target --sarif --fail-on high > ../appsec-results.sarif
+
+      - name: Emit workflow annotations
+        if: always() && hashFiles('appsec-results.sarif') != ''
+        working-directory: scanner
+        run: uv run --locked python -m appsec.ci_report ../appsec-results.sarif
+
+      - name: Publish dedicated GitHub check run
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && hashFiles('appsec-results.sarif') != ''
+        uses: actions/github-script@v7
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('appsec-results.sarif', 'utf8'));
+            const results = (report.runs || []).flatMap((run) => run.results || []);
+            const errors = results.filter((item) => item.level === 'error').length;
+            const warnings = results.filter((item) => item.level === 'warning').length;
+            const conclusion = process.env.SCAN_OUTCOME === 'failure' ? 'failure' : 'success';
+            const summary = [
+              'Scanned pull request source with the AI AppSec platform.',
+              '',
+              `Findings: ${results.length} total; ${errors} error-level (high/critical), ${warnings} warning-level.`,
+              'Detailed findings are available as workflow annotations and the SARIF artifact.'
+            ].join('\n');
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'AI AppSec Security Gate',
+              head_sha: context.payload.pull_request.head.sha,
+              status: 'completed',
+              conclusion,
+              output: {
+                title: conclusion === 'failure' ? 'AI AppSec scan failed' : 'AI AppSec scan passed',
+                summary
+              }
+            });
+
+      - name: Upload SARIF artifact
+        if: always() && hashFiles('appsec-results.sarif') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-appsec-sarif
+          path: appsec-results.sarif
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce severity gate
+        if: steps.scan.outcome == 'failure'
+        run: exit 1

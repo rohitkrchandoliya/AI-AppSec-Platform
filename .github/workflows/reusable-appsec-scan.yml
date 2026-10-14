@@ -15,7 +15,7 @@ jobs:
     steps:
       # Trusted scanner code is checked out separately from the repository being scanned.
       - name: Check out scanner
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: rohitkrchandoliya/ai-appsec-platform
           ref: main
@@ -35,7 +35,7 @@ jobs:
 
       # The target repository is data only: never run its scripts, tests, or build hooks.
       - name: Check out pull request source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.sha }}

@@ -180,6 +180,8 @@ def validate_patch_proposal(
         raise ValueError("Binary patch proposals are not supported.")
     if any("\x00" in line for line in lines):
         raise ValueError("Patch proposal contains a null byte.")
+    if redact_sensitive_text(proposal.unified_diff) != proposal.unified_diff:
+        raise ValueError("Patch proposal appears to contain a secret; refusing to return it.")
     return proposal
 
 

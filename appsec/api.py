@@ -125,7 +125,10 @@ class _Handler(BaseHTTPRequestHandler):
     """Local JSON handler with project-scoped role checks."""
 
     server_version = "AIAppSecLocalAPI/0.1"
-    _principal: dict[str, Any] = {}
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._principal: dict[str, Any] = {}
+        super().__init__(*args, **kwargs)
 
     def _send_json(
         self,

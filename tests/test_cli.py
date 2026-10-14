@@ -1,5 +1,5 @@
-from pathlib import Path
 import json
+from pathlib import Path
 
 from typer.testing import CliRunner
 
@@ -36,11 +36,17 @@ def test_scan_sarif_output(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     assert payload["version"] == "2.1.0"
     assert payload["runs"][0]["results"][0]["ruleId"] == "PYSEC-001"
-    assert payload["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["artifactLocation"]["uri"] == "sample.py"
+    location = payload["runs"][0]["results"][0]["locations"][0]["physicalLocation"]
+    assert location["artifactLocation"]["uri"] == "sample.py"
 
 
 def test_scan_rejects_multiple_machine_output_modes(tmp_path: Path) -> None:
-    for flags in (["--json", "--sarif"], ["--json", "--sbom"], ["--sarif", "--sbom"]):
+    incompatible_modes = (
+        ["--json", "--sarif"],
+        ["--json", "--sbom"],
+        ["--sarif", "--sbom"],
+    )
+    for flags in incompatible_modes:
         result = runner.invoke(app, ["scan", str(tmp_path), *flags])
         assert result.exit_code != 0, f"Expected incompatible output flags to fail: {flags}"
 

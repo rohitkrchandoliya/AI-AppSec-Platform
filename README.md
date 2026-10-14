@@ -98,7 +98,7 @@ Persistence is opt-in. To enable project management, scan history, and local usa
 APPSEC_DB_PATH=.appsec-state.sqlite3 uv run --locked appsec-api --port 8765
 ```
 
-This enables `POST /projects`, `GET /projects`, `GET /history?project=NAME`, `GET /history/SCAN_ID`, and `GET /usage`. The SQLite database stores scan results and redacted finding evidence/metadata, not the submitted full source files. Protect the database file. The local API has no authentication or multi-user access controls and is not suitable for network exposure.
+This enables `POST /projects`, `GET /projects`, `GET /history?project=NAME`, `GET /history/SCAN_ID`, and `GET /usage`. To save a scan under a named project, include `"project": "demo"` alongside the `"files"` map in the `POST /scan` JSON body. The SQLite database stores scan results and redacted finding evidence/metadata, not the submitted full source files. Protect the database file. The local API has no authentication or multi-user access controls and is not suitable for network exposure.
 
 ## How it works
 

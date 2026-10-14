@@ -41,7 +41,7 @@ The MVP is a developer aid, not a complete security assurance system or a hosted
 - Dependency inventory and risk scoring currently focus on Python manifests/lockfiles and exact-pinned versions; they do not resolve every environment marker or transitive dependency.
 - OSV lookups depend on network availability and third-party advisory quality. Results should be reviewed before gating releases.
 - AI explanations require explicit configuration and an external API key, send a bounded source window after known-pattern redaction, and may still disclose sensitive data that the redactor does not recognize. Review privacy policy before enabling them.
-- There is no hosted API/dashboard, authentication, authorization, tenant isolation, or service-level operational control in the current MVP.
+- There is no hosted API/dashboard deployment, external identity provider, tenant isolation, rate limiting, or service-level operational control. The optional local API supports shared administrator and per-user tokens with project-scoped roles, but remains loopback-only.
 - The scanner should not be run with elevated privileges on untrusted repositories. Run it in a least-privilege environment and avoid mounting sensitive host paths into CI jobs.
 
 ## Safe operating guidance

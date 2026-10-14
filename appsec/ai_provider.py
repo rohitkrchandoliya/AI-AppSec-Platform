@@ -99,7 +99,6 @@ class OpenAICompatibleReasoningProvider:
                 "AI provider response did not contain a valid structured explanation."
             ) from exc
 
-
     def propose_patch(self, request: PatchProposalRequest) -> PatchProposal:
         """Request one untrusted patch proposal; callers must review and apply it manually."""
         payload = {

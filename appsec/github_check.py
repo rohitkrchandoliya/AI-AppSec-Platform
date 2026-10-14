@@ -141,6 +141,8 @@ def create_check_run(sarif_path: Path) -> dict[str, Any]:
     try:
         document = json.loads(sarif_path.read_text(encoding="utf-8"))
         payload = build_check_payload(document, head_sha)
+    except FileNotFoundError:
+        payload = _failure_payload(head_sha, "Scanner report was not produced; inspect the workflow logs.")
     except OSError:
         payload = _failure_payload(head_sha, "Scanner report could not be read; inspect the workflow logs.")
     except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):

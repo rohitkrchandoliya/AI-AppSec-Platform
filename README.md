@@ -84,7 +84,7 @@ Use `--json`, `--sarif`, and `--sbom` separately; they cannot be combined in one
 
 ### Local API, dashboard, and history
 
-Run the local API and browser dashboard (loopback-only; no authentication):
+Run the local API and browser dashboard (loopback-only; authentication is optional):
 
 ```bash
 uv run --locked appsec-api --port 8765
@@ -133,8 +133,8 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 - Dependency inventory, OSV advisory lookup, risk scoring, and SBOM generation currently cover Python manifests and exact-pinned versions only; they do not resolve packages, evaluate every environment marker, or analyze JavaScript, Rust, Go, or other ecosystems.
 - AI reasoning and patch proposals are advisory, may be wrong, require a configured external provider, and are not a substitute for security review. Patch proposals are returned for manual review only and are never applied automatically.
 - The GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, emits escaped workflow annotations, uploads SARIF, and publishes a dedicated GitHub Checks API result for same-repository pull requests. Fork PRs rely on the ordinary workflow status because their token is read-only.
-- The optional local API/dashboard supports project registry, opt-in scan history and usage counters, and optional shared bearer-token authentication. It remains loopback-only and does not provide per-user roles or team access controls. Protect the SQLite history file because finding snippets may still contain sensitive code.
-- This is not a hosted multi-tenant SaaS. A custom GitHub App installation is not required for the standard check-run workflow; per-user authorization/team workflows remain future scope.
+- The local API/dashboard supports project registry, per-user tokens, project-scoped roles, opt-in scan history and usage counters. It remains loopback-only and is not a hosted identity provider. Protect the SQLite history file because finding snippets may still contain sensitive code.
+- This is not a hosted multi-tenant SaaS. Same-repository PR check-run reporting uses GitHub Actions permissions; a cross-repository GitHub App installation remains post-MVP.
 
 ## License
 

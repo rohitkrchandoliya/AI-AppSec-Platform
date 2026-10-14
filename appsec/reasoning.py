@@ -8,6 +8,7 @@ from typing import Protocol
 from pydantic import BaseModel, ConfigDict, Field
 
 from appsec.models import Finding
+from appsec.redaction import redact_sensitive_text
 
 
 _SECURITY_IDENTIFIER = re.compile(r"\b(?:CVE-\d{4}-\d{4,}|CWE-\d+)\b", re.IGNORECASE)

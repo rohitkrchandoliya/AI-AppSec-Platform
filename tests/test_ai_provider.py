@@ -8,7 +8,7 @@ import pytest
 
 from appsec import ai_provider
 from appsec.models import Finding, Severity
-from appsec.reasoning import ReasoningRequest
+from appsec.reasoning import PatchProposalRequest, ReasoningRequest
 
 
 class FakeResponse:
@@ -102,3 +102,35 @@ def test_provider_rejects_invalid_structured_content(
 
     with pytest.raises(RuntimeError, match="valid structured explanation"):
         provider.explain(_request())
+
+
+
+def test_provider_parses_patch_proposal(monkeypatch: pytest.MonkeyPatch) -> None:
+    content = {
+        "finding_rule_id": "PYSEC-001",
+        "unified_diff": (
+            "--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n"
+            "-eval(user_input)\n+ast.literal_eval(user_input)\n"
+        ),
+        "rationale": "Avoid dynamic code execution.",
+        "limitations": ["Validate expected input grammar."],
+    }
+    payload = {"choices": [{"message": {"content": json.dumps(content)}}]}
+    captured: dict[str, Any] = {}
+
+    def fake_urlopen(request: Any, timeout: float) -> FakeResponse:
+        captured["payload"] = json.loads(request.data.decode("utf-8"))
+        return FakeResponse(payload)
+
+    monkeypatch.setattr(ai_provider, "urlopen", fake_urlopen)
+    provider = ai_provider.OpenAICompatibleReasoningProvider(api_key="test-key")
+    request = PatchProposalRequest(
+        finding=_request().finding,
+        source_context=["3: eval(user_input)"],
+    )
+
+    result = provider.propose_patch(request)
+
+    assert result.finding_rule_id == "PYSEC-001"
+    assert result.unified_diff.startswith("--- a/app.py")
+    assert "patch assistant" in captured["payload"]["messages"][0]["content"]

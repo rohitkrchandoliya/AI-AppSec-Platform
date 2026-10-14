@@ -37,7 +37,7 @@ The current release target is a tested local CLI MVP for deterministic source sc
 - [x] Finding explanation integrated into CLI (`--explain`)
 - [x] Exploitability/context analysis integrated into CLI
 - [x] Remediation guidance integrated into CLI
-- [ ] Patch proposal generation
+- [x] Guarded AI patch proposal generation (review-only unified diff; no automatic application)
 - [x] Guardrails for finding identity, supplied references, and unsupported CVE/CWE identifiers
 
 ## Phase 4 — GitHub Developer Workflow
@@ -76,4 +76,4 @@ Before calling the CLI MVP production-ready:
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, and local baseline/suppression are implemented; GitHub App integration, inline annotations/check-run reporting, API/dashboard, authentication, and team features remain separate roadmap work.
+- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, local baseline/suppression, and guarded review-only AI patch proposals are implemented; GitHub App integration, inline annotations/check-run reporting, API/dashboard, authentication, and team features remain separate roadmap work.

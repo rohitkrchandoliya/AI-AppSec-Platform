@@ -15,6 +15,7 @@ A developer-first application security scanner that combines deterministic sourc
 - **CLI reports:** human-readable output, JSON (`--json`), and SARIF 2.1.0 (`--sarif`). The optional `--fail-on info|low|medium|high|critical` flag exits with status 1 when a finding meets or exceeds the selected severity, enabling CI security gates while keeping JSON/SARIF on stdout.
 - **Finding baselines:** `--write-baseline .appsec-baseline.json` records current findings; `--baseline .appsec-baseline.json` suppresses matching known findings while preserving new findings for the gate. Baseline fingerprints are deterministic, ignore line-number-only shifts, and do not store raw evidence.
 - **Optional AI explanations:** `--explain` asks a configured OpenAI-compatible chat-completions endpoint for explanations, exploitability context, remediation guidance, confidence, and limitations. The deterministic scanner findings remain the source of truth.
+- **AI patch proposals:** `--propose-patches` requests a minimal unified diff for each finding. Proposals are restricted to the finding’s single relative file, checked for malformed paths/multi-file changes/likely secrets, and are never automatically applied. A developer must review every proposal.
 - **Quality checks:** GitHub Actions CI runs Ruff, pytest, and mypy.
 
 This is an early MVP with intentionally limited rule coverage. The JavaScript/TypeScript checks are regex-based, not full semantic or taint analysis. A clean scan does not prove that a repository is secure. Review [the threat model](THREAT_MODEL.md) before using results as a release gate.
@@ -108,7 +109,7 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 - JavaScript/TypeScript analysis is regex-based and may produce false positives or miss indirect/obfuscated cases.
 - Secret patterns do not cover every provider, token type, encoding, or credential storage pattern.
 - Dependency inventory, OSV advisory lookup, risk scoring, and SBOM generation currently cover Python manifests and exact-pinned versions only; they do not resolve packages, evaluate every environment marker, or analyze JavaScript, Rust, Go, or other ecosystems.
-- AI reasoning is advisory, may be wrong, requires a configured external provider, and is not a substitute for security review. The current integration does not generate or apply code patches.
+- AI reasoning and patch proposals are advisory, may be wrong, require a configured external provider, and are not a substitute for security review. Patch proposals are returned for manual review only and are never applied automatically.
 - The initial GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, and uploads a SARIF artifact. GitHub App installation, inline PR annotations/check-run reporting, baselines/suppressions, API, dashboard, authentication, and team workflows are not implemented yet.
 - Production readiness still requires dependency pinning/lock strategy, reproducible builds, CI security checks, repository-history review, and a green final release verification on the merged main branch.
 

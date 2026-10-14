@@ -12,7 +12,12 @@ from appsec.baseline import apply_baseline, load_baseline
 from appsec.baseline import write_baseline as save_baseline
 from appsec.findings import normalize_findings
 from appsec.models import DependencyRisk, Finding, ScanResult, Severity
-from appsec.reasoning import GuardedReasoningProvider, build_reasoning_request
+from appsec.reasoning import (
+    GuardedPatchProposalProvider,
+    GuardedReasoningProvider,
+    build_patch_request,
+    build_reasoning_request,
+)
 from appsec.redaction import redact_sensitive_text
 from appsec.risk import dependency_risk_score
 from appsec.sarif import sarif_json
@@ -73,6 +78,19 @@ def _enforce_severity_gate(findings: list[Finding], threshold: Severity | None) 
         raise typer.Exit(code=1)
 
 
+def _propose_patches(root: Path, findings: list[Finding]) -> list[dict[str, object]]:
+    """Generate guarded, review-only patch proposals for deterministic findings."""
+    if not findings:
+        return []
+    provider = GuardedPatchProposalProvider(OpenAICompatibleReasoningProvider())
+    proposals: list[dict[str, object]] = []
+    for finding in findings:
+        request = build_patch_request(finding, source_context=_source_context(root, finding))
+        proposal = provider.propose_patch(request)
+        proposals.append(proposal.model_dump(mode="json"))
+    return proposals
+
+
 def _explain_findings(root: Path, findings: list[Finding]) -> list[dict[str, object]]:
     """Request and validate opt-in AI explanations for each deterministic finding."""
     if not findings:
@@ -125,6 +143,11 @@ def scan(
         case_sensitive=False,
         help="Exit with status 1 when any finding meets or exceeds this severity.",
     ),
+    propose_patches: bool = typer.Option(
+        False,
+        "--propose-patches",
+        help="Request review-only AI patch proposals; proposals are never applied automatically.",
+    ),
     explain: bool = typer.Option(
         False,
         "--explain",
@@ -140,6 +163,10 @@ def scan(
         raise typer.BadParameter("Use only one of --json, --sarif, or --sbom.")
     if explain and (sarif_output or sbom_output):
         raise typer.BadParameter("--explain can be combined with --json, but not --sarif or --sbom.")
+    if propose_patches and (sarif_output or sbom_output):
+        raise typer.BadParameter(
+            "--propose-patches can be combined with --json, but not --sarif or --sbom."
+        )
     if baseline is not None and write_baseline is not None:
         raise typer.BadParameter("Use either --baseline or --write-baseline, not both.")
     if sbom_output and (baseline is not None or write_baseline is not None):
@@ -196,6 +223,13 @@ def scan(
         rules_run=sum(scanner.rule_count for scanner in scanners),
     )
 
+    patch_proposals: list[dict[str, object]] = []
+    if propose_patches:
+        try:
+            patch_proposals = _propose_patches(path, findings)
+        except (RuntimeError, ValueError) as exc:
+            raise typer.BadParameter(f"AI patch proposal failed: {exc}") from exc
+
     explanations: list[dict[str, object]] = []
     if explain:
         try:
@@ -216,6 +250,8 @@ def scan(
             payload["suppressed_findings"] = suppressed_count
         if explain:
             payload["ai_reasoning"] = explanations
+        if propose_patches:
+            payload["ai_patch_proposals"] = patch_proposals
         typer.echo(json.dumps(payload, indent=2))
         _enforce_severity_gate(findings, fail_on)
         return
@@ -240,5 +276,10 @@ def scan(
             console.print(f"  Exploitability: {explanation['exploitability']}")
             console.print(f"  Remediation: {explanation['remediation']}")
             console.print(f"  Confidence: {explanation['confidence']}")
+    for proposal in patch_proposals:
+        console.print(f"[bold]AI patch proposal for {proposal['finding_rule_id']}[/bold]")
+        console.print(str(proposal["rationale"]))
+        console.print(str(proposal["unified_diff"]))
+        console.print("[yellow]Review carefully; this proposal was not applied.[/yellow]")
 
     _enforce_severity_gate(findings, fail_on)

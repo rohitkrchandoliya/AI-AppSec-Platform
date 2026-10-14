@@ -3,11 +3,13 @@
 # ruff: noqa: I001
 
 import re
+from pathlib import PurePosixPath
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from appsec.models import Finding
+from appsec.redaction import redact_sensitive_text
 
 
 _SECURITY_IDENTIFIER = re.compile(r"\b(?:CVE-\d{4}-\d{4,}|CWE-\d+)\b", re.IGNORECASE)
@@ -105,3 +107,90 @@ class GuardedReasoningProvider:
         """Call the provider and validate its structured response."""
         response = self._provider.explain(request)
         return validate_reasoning_response(request, response)
+
+
+
+class PatchProposalRequest(BaseModel):
+    """Bounded finding context used to request a proposed patch."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    finding: Finding
+    source_context: list[str] = Field(default_factory=list)
+
+
+class PatchProposal(BaseModel):
+    """A proposed unified diff; it is never applied automatically."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    finding_rule_id: str = Field(min_length=1)
+    unified_diff: str = Field(min_length=1, max_length=20000)
+    rationale: str = Field(min_length=1, max_length=3000)
+    limitations: list[str] = Field(default_factory=list, max_length=20)
+
+
+class PatchProposalProvider(Protocol):
+    """Provider interface for a generated patch proposal."""
+
+    def propose_patch(self, request: PatchProposalRequest) -> PatchProposal:
+        """Propose a patch for the supplied finding without modifying any files."""
+        ...
+
+
+def build_patch_request(
+    finding: Finding, *, source_context: list[str] | None = None
+) -> PatchProposalRequest:
+    """Build a patch request using only explicitly supplied, bounded context."""
+    return PatchProposalRequest(
+        finding=finding,
+        source_context=list(source_context or []),
+    )
+
+
+def validate_patch_proposal(
+    request: PatchProposalRequest, proposal: PatchProposal
+) -> PatchProposal:
+    """Reject mismatched, multi-file, malformed, or path-escaping patch proposals."""
+    if proposal.finding_rule_id != request.finding.rule_id:
+        raise ValueError("Patch proposal targets a different finding.")
+    path = request.finding.path.as_posix()
+    normalized = PurePosixPath(path)
+    if (
+        normalized.is_absolute()
+        or ".." in normalized.parts
+        or not path
+        or "\n" in path
+        or "\r" in path
+    ):
+        raise ValueError("Finding path is not safe for a patch proposal.")
+
+    lines = proposal.unified_diff.splitlines()
+    if len(lines) < 5:
+        raise ValueError("Patch proposal is not a valid unified diff.")
+    if lines[0] != f"--- a/{path}" or lines[1] != f"+++ b/{path}":
+        raise ValueError("Patch proposal must target only the finding's relative file path.")
+    if sum(line.startswith("--- ") for line in lines) != 1 or sum(
+        line.startswith("+++ ") for line in lines
+    ) != 1:
+        raise ValueError("Patch proposal must modify exactly one file.")
+    if not any(line.startswith("@@ ") for line in lines):
+        raise ValueError("Patch proposal must contain a unified diff hunk.")
+    if any(line.startswith(("GIT binary patch", "Binary files ")) for line in lines):
+        raise ValueError("Binary patch proposals are not supported.")
+    if any("\x00" in line for line in lines):
+        raise ValueError("Patch proposal contains a null byte.")
+    if redact_sensitive_text(proposal.unified_diff) != proposal.unified_diff:
+        raise ValueError("Patch proposal appears to contain a secret; refusing to return it.")
+    return proposal
+
+
+class GuardedPatchProposalProvider:
+    """Validate untrusted AI-generated patches before returning them to the caller."""
+
+    def __init__(self, provider: PatchProposalProvider) -> None:
+        self._provider = provider
+
+    def propose_patch(self, request: PatchProposalRequest) -> PatchProposal:
+        proposal = self._provider.propose_patch(request)
+        return validate_patch_proposal(request, proposal)

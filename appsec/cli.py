@@ -109,12 +109,12 @@ def scan(
     sbom_output: bool = typer.Option(
         False, "--sbom", help="Emit a CycloneDX 1.5 SBOM for exact-pinned Python dependencies."
     ),
-    fail_on: Severity | None = typer.Option(
+    fail_on: Severity | None = typer.Option(  # noqa: B008
         None,
         "--fail-on",
         case_sensitive=False,
         help="Exit with status 1 when any finding meets or exceeds this severity.",
-    ),  # noqa: B008
+    ),
     explain: bool = typer.Option(
         False,
         "--explain",

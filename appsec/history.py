@@ -129,6 +129,8 @@ def save_scan(
                 json.dumps(result, separators=(",", ":"), ensure_ascii=False),
             ),
         )
+        if cursor.lastrowid is None:
+            raise RuntimeError("Could not retrieve the created scan ID.")
         return int(cursor.lastrowid)
 
 

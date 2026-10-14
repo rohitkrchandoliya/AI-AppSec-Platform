@@ -82,3 +82,33 @@ def test_api_health_and_scan_endpoints() -> None:
         server.shutdown()
         server.server_close()
         thread.join(timeout=3)
+
+
+
+def test_dashboard_assets_are_served_with_security_headers() -> None:
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base_url = f"http://127.0.0.1:{server.server_port}"
+    try:
+        with urllib.request.urlopen(base_url + "/", timeout=3) as response:
+            html = response.read().decode("utf-8")
+            assert response.status == 200
+            assert response.headers["Content-Security-Policy"].startswith("default-src 'self'")
+            assert response.headers["X-Frame-Options"] == "DENY"
+            assert "Source security dashboard" in html
+            assert "/assets/dashboard.js" in html
+
+        with urllib.request.urlopen(base_url + "/assets/dashboard.js", timeout=3) as response:
+            javascript = response.read().decode("utf-8")
+            assert response.status == 200
+            assert "textContent" in javascript
+            assert "innerHTML" not in javascript
+
+        with urllib.request.urlopen(base_url + "/assets/dashboard.css", timeout=3) as response:
+            assert response.status == 200
+            assert "Content-Type" in response.headers
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)

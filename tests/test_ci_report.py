@@ -36,5 +36,5 @@ def test_emit_annotations_maps_levels_and_escapes_workflow_commands(capsys) -> N
 
 
 def test_emit_annotations_rejects_invalid_runs() -> None:
-    with pytest.raises(ValueError, match="runs list"):
+    with pytest.raises(TypeError, match="runs list"):
         emit_annotations({"version": "2.1.0"})

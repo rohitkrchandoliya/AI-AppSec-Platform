@@ -1,6 +1,6 @@
 # AI AppSec Platform
 
-A developer-first application security scanner with deterministic source-code and secret checks, normalized findings, machine-readable reports, guarded AI patch proposals, GitHub Actions PR checks, and an optional local API/dashboard. It is a local-first tool, not a hosted multi-user SaaS product.
+A local-first application security platform with deterministic source-code and secret checks, normalized findings, machine-readable reports, guarded AI patch proposals, GitHub Actions PR checks, a local API/dashboard, opt-in SQLite history, and project-scoped team roles. It is not a hosted multi-tenant SaaS product.
 
 ## Current implementation
 

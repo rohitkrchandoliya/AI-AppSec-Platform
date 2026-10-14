@@ -116,3 +116,39 @@ def test_fail_on_rejects_invalid_severity(tmp_path: Path) -> None:
     result = runner.invoke(app, ["scan", str(tmp_path), "--fail-on", "blocker"])
 
     assert result.exit_code != 0
+
+
+
+def test_write_and_apply_finding_baseline(tmp_path: Path) -> None:
+    source = tmp_path / "unsafe.py"
+    source.write_text("eval(user_input)\n", encoding="utf-8")
+    baseline = tmp_path / "baseline.json"
+
+    created = runner.invoke(app, ["scan", str(tmp_path), "--write-baseline", str(baseline)])
+    assert created.exit_code == 0
+    assert baseline.is_file()
+
+    scanned = runner.invoke(
+        app, ["scan", str(tmp_path), "--baseline", str(baseline), "--json"]
+    )
+    assert scanned.exit_code == 0
+    payload = json.loads(scanned.stdout)
+    assert payload["findings"] == []
+    assert payload["suppressed_findings"] == 1
+
+
+def test_baseline_options_are_mutually_exclusive(tmp_path: Path) -> None:
+    baseline = tmp_path / "baseline.json"
+    baseline.write_text('{"schema_version": 1, "findings": []}', encoding="utf-8")
+    result = runner.invoke(
+        app,
+        [
+            "scan",
+            str(tmp_path),
+            "--baseline",
+            str(baseline),
+            "--write-baseline",
+            str(tmp_path / "new.json"),
+        ],
+    )
+    assert result.exit_code != 0

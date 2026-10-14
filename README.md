@@ -110,7 +110,7 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 - Secret patterns do not cover every provider, token type, encoding, or credential storage pattern.
 - Dependency inventory, OSV advisory lookup, risk scoring, and SBOM generation currently cover Python manifests and exact-pinned versions only; they do not resolve packages, evaluate every environment marker, or analyze JavaScript, Rust, Go, or other ecosystems.
 - AI reasoning and patch proposals are advisory, may be wrong, require a configured external provider, and are not a substitute for security review. Patch proposals are returned for manual review only and are never applied automatically.
-- The initial GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, and uploads a SARIF artifact. GitHub App installation, inline PR annotations/check-run reporting, baselines/suppressions, API, dashboard, authentication, and team workflows are not implemented yet.
+- The initial GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, emits escaped GitHub Actions check annotations from SARIF, and uploads a SARIF artifact. GitHub App installation, inline PR annotations/check-run reporting, baselines/suppressions, API, dashboard, authentication, and team workflows are not implemented yet.
 - Production readiness still requires dependency pinning/lock strategy, reproducible builds, CI security checks, repository-history review, and a green final release verification on the merged main branch.
 
 ## License

@@ -62,6 +62,28 @@ Export a CycloneDX SBOM:
 uv run --locked appsec scan ./path-to-project --sbom
 ```
 
+### Reuse the PR scan in another repository
+
+For repositories where you want the same scanner, add a caller workflow like this (replace `main` with a reviewed commit SHA if you want to pin the scanner version):
+
+```yaml
+name: AI AppSec
+
+on:
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  security:
+    uses: rohitkrchandoliya/ai-appsec-platform/.github/workflows/reusable-appsec-scan.yml@main
+```
+
+The reusable workflow checks out the scanner from this repository and the target PR source separately. It scans target files as data only; it never runs target scripts, tests, or build hooks. It emits workflow annotations and a SARIF artifact, fails on high/critical findings, and publishes a dedicated check run for same-repository PRs. Fork PRs get workflow annotations and the normal job status because their token cannot write Checks API results. This cross-repository workflow requires no GitHub App private key; centralized webhook-based installation is not included in the local-first MVP.
+
 ### Optional AI explanations
 
 Set a key for the OpenAI-compatible endpoint you intend to use. The model can be overridden with `OPENAI_MODEL` and the endpoint with `OPENAI_BASE_URL` (defaults to `https://api.openai.com/v1`).

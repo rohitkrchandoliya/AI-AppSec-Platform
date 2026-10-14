@@ -43,7 +43,7 @@ The current release target is a tested local CLI MVP for deterministic source sc
 ## Phase 4 — GitHub Developer Workflow
 - [ ] GitHub App integration
 - [x] Pull-request source scanning workflow (GitHub Actions scans `appsec/` on PRs)
-- [ ] Inline findings
+- [x] Inline workflow annotations generated from SARIF results
 - [x] Severity-based security gate (`--fail-on`; high/critical findings fail the PR scan job)
 - [x] Local JSON baseline and deterministic finding suppression (`--baseline`, `--write-baseline`)
 - [ ] Check-run reporting

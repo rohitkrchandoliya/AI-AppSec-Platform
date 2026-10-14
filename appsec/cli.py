@@ -22,6 +22,7 @@ from appsec.scanners.dependencies import discover_dependencies
 
 app = typer.Typer(help="AI-assisted application security scanner.")
 console = Console()
+gate_console = Console(stderr=True)
 
 
 @app.command()
@@ -63,7 +64,7 @@ def _enforce_severity_gate(findings: list[Finding], threshold: Severity | None) 
     }
     blocking = [finding for finding in findings if rank[finding.severity] >= rank[threshold]]
     if blocking:
-        console.print(
+        gate_console.print(
             f"[bold red]Security gate failed:[/bold red] {len(blocking)} finding(s) "
             f"at or above {threshold.value} severity."
         )

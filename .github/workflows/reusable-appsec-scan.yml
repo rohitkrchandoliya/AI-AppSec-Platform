@@ -50,6 +50,8 @@ jobs:
 
       - name: Emit workflow annotations
         if: always() && hashFiles('appsec-results.sarif') != ''
+        env:
+          APPSEC_ANNOTATION_PATH_PREFIX: target
         working-directory: scanner
         run: uv run --locked python -m appsec.ci_report ../appsec-results.sarif
 

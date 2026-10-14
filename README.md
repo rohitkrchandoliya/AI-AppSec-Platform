@@ -159,6 +159,44 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 - [Roadmap and release gates](ROADMAP.md)
 - [Threat model, trust boundaries, and safe operating guidance](THREAT_MODEL.md)
 
+## Release status and final setup
+
+**Release scope:** the local-first MVP implementation is complete. The repository includes the CLI scanners, reports/SBOM/baselines, opt-in AI explanation and review-only patch proposals, local API/dashboard/history/team roles, reusable cross-repository GitHub Actions scanning, and the optional GitHub App-owned check-run reporter. The project is not a hosted multi-tenant SaaS service.
+
+The default GitHub Actions security workflow and reusable workflow do not require a GitHub App installation. App-owned check runs are an optional enhancement and remain inactive until a repository administrator completes the setup below. This is configuration, not missing scanner implementation.
+
+### Optional GitHub App check-run setup
+
+Do this only if you want the check to be authored by your GitHub App rather than the standard GitHub Actions identity.
+
+1. Open **GitHub → Settings → Developer settings → GitHub Apps → New GitHub App**.
+2. Give the App a recognizable name and set **Webhook Active** to off if you are only using the current check-run workflow; no webhook URL or webhook secret is required for this workflow.
+3. Under **Repository permissions**, grant only:
+   - **Contents: Read-only**
+   - **Checks: Read and write**
+4. Create the App, note its **App ID**, and generate a private key. Store the private key securely; never commit it to this repository or paste it into an issue or log.
+5. Install the App on the repository `rohitkrchandoliya/ai-appsec-platform`. Select only the repositories that should receive the App-owned check.
+6. In the repository, open **Settings → Secrets and variables → Actions → New repository secret** and add:
+   - `APP_ID`: the numeric App ID.
+   - `APP_PRIVATE_KEY`: the complete generated private key, including its header and footer.
+7. Open or update a same-repository pull request targeting `main`. The **Optional GitHub App Security Check** workflow should run and publish **AI AppSec GitHub App Scan**. Confirm the run and check result in the PR Checks tab.
+8. If the optional workflow skips because the secrets are absent, that is expected; the standard AppSec workflow remains the active security gate.
+
+**Trust boundary:** the optional workflow checks out scanner code and dependencies from the trusted PR base revision. Pull-request source is checked out separately and scanned as data only; it must not be executed, built, or used to install dependencies. The App installation token is passed only to the trusted check-run reporter.
+
+### Cross-repository use
+
+For another repository, follow the reusable workflow example above. Prefer pinning the reusable workflow reference to a reviewed full commit SHA instead of `@main` for stricter supply-chain control. Configure required workflow permissions in the caller repository and verify the result on a test pull request before making the check a required branch-protection rule.
+
+### Final verification checklist
+
+- [ ] Run the local commands in **Quick start** and scan a small test project.
+- [ ] Review [ROADMAP.md](ROADMAP.md) and [THREAT_MODEL.md](THREAT_MODEL.md).
+- [ ] If using the optional App-owned check, complete the setup above and verify a real PR check.
+- [ ] Configure branch protection / rulesets to require the intended AppSec check only after observing a successful test PR.
+- [ ] Keep the App private key in GitHub Secrets; rotate it if it is exposed.
+- [ ] Review findings manually. A clean scan is not proof that software is secure.
+
 ## Current limitations
 
 - Detection coverage is narrow and rule-based.

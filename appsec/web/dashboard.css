@@ -33,3 +33,9 @@ button:disabled { opacity: .55; cursor: wait; }
 .badge.medium { background: #fff0cc; color: #805400; }
 .footnote { color: #657187; font-size: .85rem; line-height: 1.5; }
 @media (max-width: 560px) { .summary { grid-template-columns: 1fr; } header { padding-top: 1.5rem; padding-bottom: 1.5rem; } }
+
+.project-actions { display: grid; grid-template-columns: 1fr auto; gap: .6rem; align-items: center; }
+.project-actions label { margin: 0; }
+.project-actions input, .project-actions select { min-width: 0; width: 100%; padding: .65rem; border: 1px solid #bcc8d9; border-radius: 8px; background: white; }
+.project-actions label[for="project-select"] { grid-column: 1 / -1; margin-top: .4rem; }
+@media (max-width: 560px) { .project-actions { grid-template-columns: 1fr; } .project-actions label[for="project-select"] { grid-column: auto; } }

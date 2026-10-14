@@ -41,12 +41,12 @@ The current release target is a tested local CLI MVP for deterministic source sc
 - [x] Guardrails for finding identity, supplied references, and unsupported CVE/CWE identifiers
 
 ## Phase 4 — GitHub Developer Workflow
-- [ ] GitHub App integration
+- [x] Optional GitHub App integration for same-repository PR check runs (requires `APP_ID` and `APP_PRIVATE_KEY` secrets; fork PRs use the standard workflow)
 - [x] Pull-request source scanning workflow (GitHub Actions scans `appsec/` on PRs)
 - [x] Inline workflow annotations generated from SARIF results
 - [x] Severity-based security gate (`--fail-on`; high/critical findings fail the PR scan job)
 - [x] Local JSON baseline and deterministic finding suppression (`--baseline`, `--write-baseline`)
-- [ ] Check-run reporting
+- [x] Dedicated GitHub Checks API check-run with severity-based conclusion and bounded inline annotations
 
 ## Phase 5 — Product Layer
 - [x] Local JSON API service (`/health`, bounded `POST /scan`; loopback-only default)
@@ -77,4 +77,4 @@ Before calling the CLI MVP production-ready:
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, local baseline/suppression, and guarded review-only AI patch proposals are implemented; GitHub App integration, GitHub API check-run creation, GitHub App integration, dedicated GitHub API check-run creation, per-user authorization/roles, and team workflows remain separate roadmap work. Local project history and usage counters are opt-in via `APPSEC_DB_PATH`; usage counts are not billing.
+- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, local baseline/suppression, and guarded review-only AI patch proposals are implemented; GitHub App integration, GitHub API check-run creation, Per-user authorization/roles and team workflows remain separate roadmap work. GitHub App checks require administrator-provided secrets and are limited to same-repository PRs; usage counters are local metrics, not billing.

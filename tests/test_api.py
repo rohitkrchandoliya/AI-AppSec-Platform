@@ -204,3 +204,11 @@ def test_history_endpoint_is_disabled_without_database(monkeypatch) -> None:
         server.shutdown()
         server.server_close()
         thread.join(timeout=3)
+
+
+
+def test_api_refuses_non_loopback_binding() -> None:
+    from appsec.api import create_server
+
+    with pytest.raises(ValueError, match="loopback"):
+        create_server("0.0.0.0", 8765)

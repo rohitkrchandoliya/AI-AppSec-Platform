@@ -127,3 +127,35 @@ def test_create_check_run_publishes_failure_when_sarif_is_missing(
     github_check.create_check_run(tmp_path / "missing.sarif")
     assert captured["payload"]["conclusion"] == "failure"
     assert "not produced" in captured["payload"]["output"]["summary"]
+
+
+def test_create_check_run_publishes_failure_when_sarif_is_malformed(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from appsec import github_check
+
+    bad_path = tmp_path / "malformed.sarif"
+    bad_path.write_text("{ not json", encoding="utf-8")
+    monkeypatch.setenv("APPSEC_GITHUB_TOKEN", "app-token")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+    monkeypatch.setenv("APPSEC_HEAD_SHA", "f" * 40)
+    captured: dict[str, object] = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def read(self) -> bytes:
+            return b'{"id":456}'
+
+    def fake_urlopen(request, timeout: float):
+        captured["payload"] = json.loads(request.data.decode("utf-8"))
+        return FakeResponse()
+
+    monkeypatch.setattr(github_check, "urlopen", fake_urlopen)
+    github_check.create_check_run(bad_path)
+    assert captured["payload"]["conclusion"] == "failure"
+    assert "malformed" in captured["payload"]["output"]["summary"]

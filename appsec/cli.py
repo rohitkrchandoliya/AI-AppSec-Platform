@@ -7,6 +7,7 @@ import typer
 from rich.console import Console
 
 from appsec import __version__
+from appsec.baseline import apply_baseline, load_baseline, write_baseline as save_baseline
 from appsec.ai_provider import OpenAICompatibleReasoningProvider
 from appsec.findings import normalize_findings
 from appsec.models import DependencyRisk, Finding, ScanResult, Severity
@@ -109,6 +110,14 @@ def scan(
     sbom_output: bool = typer.Option(
         False, "--sbom", help="Emit a CycloneDX 1.5 SBOM for exact-pinned Python dependencies."
     ),
+    baseline: Path | None = typer.Option(
+        None, "--baseline", exists=True, file_okay=True, dir_okay=False, readable=True,
+        help="Suppress findings already recorded in this baseline JSON file.",
+    ),
+    write_baseline: Path | None = typer.Option(
+        None, "--write-baseline", file_okay=True, dir_okay=False,
+        help="Write a baseline JSON file from the current findings.",
+    ),
     fail_on: Severity | None = typer.Option(  # noqa: B008
         None,
         "--fail-on",
@@ -130,6 +139,10 @@ def scan(
         raise typer.BadParameter("Use only one of --json, --sarif, or --sbom.")
     if explain and (sarif_output or sbom_output):
         raise typer.BadParameter("--explain can be combined with --json, but not --sarif or --sbom.")
+    if baseline is not None and write_baseline is not None:
+        raise typer.BadParameter("Use either --baseline or --write-baseline, not both.")
+    if sbom_output and (baseline is not None or write_baseline is not None):
+        raise typer.BadParameter("Baseline options apply to findings and cannot be combined with --sbom.")
 
     scanners = (
         PythonSecurityScanner(),
@@ -149,6 +162,18 @@ def scan(
         except RuntimeError as exc:
             raise typer.BadParameter(str(exc)) from exc
         findings = normalize_findings([*findings, *dependency_findings], path)
+
+    suppressed_count = 0
+    if write_baseline is not None:
+        try:
+            save_baseline(write_baseline, findings)
+        except OSError as exc:
+            raise typer.BadParameter(f"Could not write finding baseline: {exc}") from exc
+    if baseline is not None:
+        try:
+            findings, suppressed_count = apply_baseline(findings, load_baseline(baseline))
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from exc
 
     dependency_risks: list[DependencyRisk] = []
     for dependency in dependencies:
@@ -186,6 +211,8 @@ def scan(
         return
     if json_output:
         payload = result.model_dump(mode="json")
+        if baseline is not None:
+            payload["suppressed_findings"] = suppressed_count
         if explain:
             payload["ai_reasoning"] = explanations
         typer.echo(json.dumps(payload, indent=2))
@@ -196,6 +223,8 @@ def scan(
     console.print(
         f"Files: {result.files_scanned} | Findings: {len(result.findings)} | Rules: {result.rules_run}"
     )
+    if baseline is not None:
+        console.print(f"Suppressed known findings: {suppressed_count}")
     explanation_by_rule = {
         item["finding_rule_id"]: item for item in explanations if "finding_rule_id" in item
     }

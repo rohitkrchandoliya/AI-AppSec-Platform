@@ -53,8 +53,9 @@ The current release target is a tested local CLI MVP for deterministic source sc
 - [x] Local web dashboard for source submission, findings, and dependency risk
 - [x] Local project registry and project-scoped scan history
 - [x] SQLite-backed historical scan results and findings
-- [ ] Team workflows (shared findings ownership, collaboration, and role-aware workflows)
-- [ ] Authentication and authorization (not implemented; API remains loopback-only)
+- [ ] Team workflows
+- [x] Optional shared bearer-token authentication for local API data routes
+- [ ] Per-user authorization, roles, and team access controls
 - [x] Local usage counters (scan count, files, findings, source bytes; no billing)
 
 ## Quality gates
@@ -76,4 +77,4 @@ Before calling the CLI MVP production-ready:
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The local CLI quality gates have passed on main in subsequent CI runs; always verify the latest merged-main run before release. The PR scan workflow, severity gate, local baseline/suppression, guarded review-only AI patch proposals, local API/dashboard, project registry, scan history, usage counters, and dedicated GitHub API check-run reporting are implemented. GitHub App installation and multi-user authentication/authorization/team workflows remain out of scope until their trust boundaries and deployment model are designed. Local project history and usage counters are opt-in via `APPSEC_DB_PATH` and do not provide billing or multi-user access controls.
+- The local CLI quality gates have passed on main in subsequent CI runs; always verify the latest merged-main run before release. The PR scan workflow, severity gate, local baseline/suppression, guarded review-only AI patch proposals, local API/dashboard, project registry, scan history, usage counters, optional shared bearer-token authentication, and dedicated GitHub API check-run reporting are implemented. GitHub App installation and per-user authorization/team workflows remain separate roadmap work. Local history and usage counters are opt-in via `APPSEC_DB_PATH`; usage counts are not billing.

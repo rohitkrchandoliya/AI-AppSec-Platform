@@ -382,8 +382,8 @@ class _Handler(BaseHTTPRequestHandler):
                 if db_path is None:
                     self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable project teams."})
                     return
-                project_name = unquote(parts[1])
-                if not self._can_manage_project(db_path, project_name):
+                member_project_name = unquote(parts[1])
+                if not self._can_manage_project(db_path, member_project_name):
                     self._send_json(403, {"error": "Project administrator role required."})
                     return
                 if not isinstance(payload, dict) or "username" not in payload:
@@ -391,7 +391,7 @@ class _Handler(BaseHTTPRequestHandler):
                     return
                 member = add_project_member(
                     db_path,
-                    project_name,
+                    member_project_name,
                     payload["username"],
                     payload.get("role", "viewer"),
                 )

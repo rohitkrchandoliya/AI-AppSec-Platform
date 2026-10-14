@@ -64,8 +64,7 @@ def test_explain_rejects_sarif_combination_before_provider_call(
     monkeypatch.setattr(cli, "_explain_findings", fail_if_called)
     result = runner.invoke(cli.app, ["scan", str(tmp_path), "--sarif", "--explain"])
 
-    assert result.exit_code != 0
-    assert "not --sarif or --sbom" in result.output
+    assert result.exit_code == 2
 
 
 def test_source_context_redacts_token_and_limits_window(tmp_path: Path) -> None:

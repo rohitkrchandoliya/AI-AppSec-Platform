@@ -1,6 +1,7 @@
 """Local-only JSON API for scanning submitted source files."""
 
 import argparse
+import ipaddress
 import json
 import os
 import sqlite3
@@ -175,7 +176,8 @@ class _Handler(BaseHTTPRequestHandler):
                     query = parse_qs(parsed.query)
                     project = query.get("project", [None])[0]
                     limit = int(query.get("limit", ["50"])[0])
-                    self._send_json(200, {"scans": list_scans(db_path, project_name=project, limit=limit)})
+                    scans = list_scans(db_path, project_name=project, limit=limit)
+                    self._send_json(200, {"scans": scans})
                 elif route == "/usage":
                     self._send_json(200, usage_summary(db_path))
                 else:
@@ -218,7 +220,9 @@ class _Handler(BaseHTTPRequestHandler):
             if route == "/projects":
                 database = os.getenv("APPSEC_DB_PATH")
                 if not database:
-                    self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable local projects."})
+                    self._send_json(
+                        503, {"error": "Set APPSEC_DB_PATH to enable local projects."}
+                    )
                     return
                 if not isinstance(payload, dict) or "name" not in payload:
                     self._send_json(400, {"error": "Request JSON must contain a project name."})
@@ -234,7 +238,11 @@ class _Handler(BaseHTTPRequestHandler):
             result = scan_files(files)
             database = os.getenv("APPSEC_DB_PATH")
             if database:
-                project_name = payload.get("project", "default") if isinstance(payload, dict) else "default"
+                project_name = (
+                    payload.get("project", "default")
+                    if isinstance(payload, dict)
+                    else "default"
+                )
                 scan_id = save_scan(
                     Path(database).expanduser(),
                     project_name,
@@ -244,7 +252,9 @@ class _Handler(BaseHTTPRequestHandler):
                 result["scan_id"] = scan_id
                 result["project"] = project_name
             elif isinstance(payload, dict) and "project" in payload:
-                self._send_json(503, {"error": "Set APPSEC_DB_PATH to save scans under a project."})
+                self._send_json(
+                    503, {"error": "Set APPSEC_DB_PATH to save scans under a project."}
+                )
                 return
             self._send_json(200, result)
         except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
@@ -257,7 +267,16 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 def create_server(host: str = "127.0.0.1", port: int = 8765) -> ThreadingHTTPServer:
-    """Create the API server; default binding is loopback-only."""
+    """Create the unauthenticated local API server, refusing non-loopback binds."""
+    if host == "localhost":
+        pass
+    else:
+        try:
+            is_loopback = ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            is_loopback = False
+        if not is_loopback:
+            raise ValueError("The unauthenticated API may bind only to a loopback address.")
     return ThreadingHTTPServer((host, port), _Handler)
 
 

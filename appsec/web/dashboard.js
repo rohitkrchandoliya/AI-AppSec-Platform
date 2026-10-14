@@ -7,6 +7,14 @@ const historyNode = document.querySelector("#history");
 const historyStatus = document.querySelector("#history-status");
 const projectSelect = document.querySelector("#project-select");
 
+function authHeaders(json = false) {
+  const headers = {};
+  if (json) headers["Content-Type"] = "application/json";
+  const token = document.querySelector("#api-token").value.trim();
+  if (token) headers.Authorization = "Bearer " + token;
+  return headers;
+}
+
 function textElement(tag, value, className) {
   const element = document.createElement(tag);
   element.textContent = String(value ?? "");
@@ -51,7 +59,7 @@ function renderRisks(risks) {
 async function loadScan(scanId) {
   historyStatus.textContent = "Loading scan #" + scanId + "…";
   try {
-    const response = await fetch("/history/" + encodeURIComponent(scanId));
+    const response = await fetch("/history/" + encodeURIComponent(scanId), { headers: authHeaders() });
     const saved = await response.json();
     if (!response.ok) throw new Error(saved.error || "Could not load scan.");
     const result = saved.result;
@@ -68,7 +76,7 @@ async function loadScan(scanId) {
 
 async function refreshHistory() {
   try {
-    const response = await fetch("/history?limit=20");
+    const response = await fetch("/history?limit=20", { headers: authHeaders() });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "History is unavailable.");
     historyNode.replaceChildren();
@@ -102,7 +110,7 @@ async function refreshHistory() {
 
 async function refreshProjects() {
   try {
-    const response = await fetch("/projects");
+    const response = await fetch("/projects", { headers: authHeaders() });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Projects are unavailable.");
     const selected = projectSelect.value || "default";
@@ -131,7 +139,7 @@ document.querySelector("#create-project").addEventListener("click", async () => 
   try {
     const response = await fetch("/projects", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(true),
       body: JSON.stringify({ name }),
     });
     const data = await response.json();
@@ -179,3 +187,9 @@ button.addEventListener("click", async () => {
 
 void refreshProjects();
 void refreshHistory();
+
+
+document.querySelector("#api-token").addEventListener("change", () => {
+  void refreshProjects();
+  void refreshHistory();
+});

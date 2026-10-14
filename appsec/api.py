@@ -1,6 +1,7 @@
 """Local-only JSON API for scanning submitted source files."""
 
 import argparse
+import hmac
 import ipaddress
 import json
 import os
@@ -115,14 +116,36 @@ class _Handler(BaseHTTPRequestHandler):
 
     server_version = "AIAppSecLocalAPI/0.1"
 
-    def _send_json(self, status: int, payload: dict[str, Any]) -> None:
+    def _send_json(
+        self,
+        status: int,
+        payload: dict[str, Any],
+        extra_headers: dict[str, str] | None = None,
+    ) -> None:
         body = json.dumps(payload, indent=2).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("X-Content-Type-Options", "nosniff")
+        for name, value in (extra_headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
+
+    def _authorize(self, route: str) -> bool:
+        token = os.getenv("APPSEC_API_TOKEN")
+        public_routes = {"/health", "/", "/assets/dashboard.css", "/assets/dashboard.js"}
+        if not token or route in public_routes:
+            return True
+        provided = self.headers.get("Authorization", "")
+        if hmac.compare_digest(provided, f"Bearer {token}"):
+            return True
+        self._send_json(
+            401,
+            {"error": "Authentication required."},
+            {"WWW-Authenticate": "Bearer"},
+        )
+        return False
 
     def _send_asset(self, name: str) -> None:
         assets = {
@@ -157,6 +180,8 @@ class _Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlsplit(self.path)
         route = parsed.path
+        if not self._authorize(route):
+            return
         if route in {"/", "/assets/dashboard.css", "/assets/dashboard.js"}:
             self._send_asset(route)
             return
@@ -200,6 +225,8 @@ class _Handler(BaseHTTPRequestHandler):
         route = urlsplit(self.path).path
         if route not in {"/scan", "/projects"}:
             self._send_json(404, {"error": "Not found."})
+            return
+        if not self._authorize(route):
             return
         if self.headers.get_content_type() != "application/json":
             self._send_json(415, {"error": "Content-Type must be application/json."})
@@ -268,6 +295,9 @@ class _Handler(BaseHTTPRequestHandler):
 
 def create_server(host: str = "127.0.0.1", port: int = 8765) -> ThreadingHTTPServer:
     """Create the unauthenticated local API server, refusing non-loopback binds."""
+    token = os.getenv("APPSEC_API_TOKEN")
+    if token is not None and (len(token) < 32 or not token.isascii()):
+        raise ValueError("APPSEC_API_TOKEN must be at least 32 ASCII characters long.")
     if host == "localhost":
         pass
     else:

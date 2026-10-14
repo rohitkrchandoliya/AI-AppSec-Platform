@@ -1,5 +1,7 @@
 """Opt-in OpenAI-compatible provider for evidence-grounded finding explanations."""
 
+# ruff: noqa: I001
+
 import json
 import os
 from urllib.error import HTTPError, URLError

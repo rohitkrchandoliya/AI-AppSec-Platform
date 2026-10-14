@@ -165,7 +165,7 @@ button.addEventListener("click", async () => {
     }
     const response = await fetch("/scan", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(true),
       body: JSON.stringify(payload),
     });
     const result = await response.json();

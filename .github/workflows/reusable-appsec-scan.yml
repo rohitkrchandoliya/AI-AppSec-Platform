@@ -33,6 +33,14 @@ jobs:
           python -m pip install uv==0.13.0
           uv sync --locked --all-extras
 
+      - name: Check out pull request base revision as data
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.base.repo.full_name }}
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: target-base
+          persist-credentials: false
+
       # The target repository is data only: never run its scripts, tests, or build hooks.
       - name: Check out pull request source
         uses: actions/checkout@v4
@@ -42,25 +50,38 @@ jobs:
           path: target
           persist-credentials: false
 
-      - name: Scan pull request source
-        id: scan
+      - name: Scan base revision
+        id: scan_base
         continue-on-error: true
         working-directory: scanner
-        run: uv run --locked appsec scan ../target --sarif --fail-on high > ../appsec-results.sarif
+        run: uv run --locked appsec scan ../target-base --sarif > ../base-results.sarif
 
+      - name: Scan pull request revision
+        id: scan_head
+        continue-on-error: true
+        working-directory: scanner
+        run: uv run --locked appsec scan ../target --sarif > ../head-results.sarif
+
+      - name: Compare base and pull request findings
+        id: compare
+        working-directory: scanner
+        env:
+          BASE_SCAN_OUTCOME: ${{ steps.scan_base.outcome }}
+          HEAD_SCAN_OUTCOME: ${{ steps.scan_head.outcome }}
+        run: uv run --locked python -m appsec.ci_delta ../base-results.sarif ../head-results.sarif ../appsec-new-findings.sarif
       - name: Emit workflow annotations
-        if: always() && hashFiles('appsec-results.sarif') != ''
+        if: always() && hashFiles('appsec-new-findings.sarif') != ''
         env:
           APPSEC_ANNOTATION_PATH_PREFIX: target
         working-directory: scanner
-        run: uv run --locked python -m appsec.ci_report ../appsec-results.sarif
+        run: uv run --locked python -m appsec.ci_report ../appsec-new-findings.sarif
 
       - name: Publish dedicated GitHub check run
-        if: always() && github.event_name == 'pull_request_target' && hashFiles('appsec-results.sarif') != ''
+        if: always() && github.event_name == 'pull_request_target' && hashFiles('appsec-new-findings.sarif') != ''
         uses: actions/github-script@v7
         env:
-          SARIF_PATH: appsec-results.sarif
-          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+          SARIF_PATH: appsec-new-findings.sarif
+          SCAN_OUTCOME: ${{ steps.compare.outcome }}
         with:
           script: |
             const fs = require('fs');
@@ -94,7 +115,7 @@ jobs:
               '- Note: ' + counts.note,
               '- Other levels: ' + counts.other,
               '',
-              process.env.SCAN_OUTCOME === 'success' ? 'The configured severity gate passed.' : 'The scan step failed or found a high/critical issue. Review workflow annotations and the SARIF artifact.'
+              process.env.SCAN_OUTCOME === 'success' ? 'No new high/critical findings were introduced compared with the trusted base revision.' : 'The base/head scan or finding comparison failed, or new high/critical findings were introduced. Review annotations and the SARIF artifact.'
             ].join('\n');
             await github.rest.checks.create({
               owner: context.repo.owner,
@@ -111,14 +132,14 @@ jobs:
             });
 
       - name: Upload SARIF artifact
-        if: always() && hashFiles('appsec-results.sarif') != ''
+        if: always() && hashFiles('appsec-new-findings.sarif') != ''
         uses: actions/upload-artifact@v4
         with:
           name: ai-appsec-sarif
-          path: appsec-results.sarif
+          path: appsec-new-findings.sarif
           if-no-files-found: error
           retention-days: 14
 
       - name: Enforce severity gate
-        if: steps.scan.outcome == 'failure'
+        if: steps.compare.outcome == 'failure'
         run: exit 1

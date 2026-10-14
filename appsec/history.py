@@ -1,13 +1,24 @@
 """Opt-in SQLite persistence for local project and scan history."""
 
 import json
+from contextlib import contextmanager
 import re
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 _PROJECT_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._ -]{0,63}$")
+
+
+@contextmanager
+def _database(path: Path) -> Iterator[sqlite3.Connection]:
+    connection = _connect(path)
+    try:
+        with connection:
+            yield connection
+    finally:
+        connection.close()
 
 
 def _timestamp() -> str:
@@ -56,7 +67,7 @@ def validate_project_name(name: Any) -> str:
 def create_project(path: Path, name: str) -> dict[str, Any]:
     """Create a project; duplicate names are rejected case-insensitively."""
     normalized = validate_project_name(name)
-    with _connect(path) as connection:
+    with _database(path) as connection:
         cursor = connection.execute(
             "INSERT INTO projects(name, created_at) VALUES (?, ?)",
             (normalized, _timestamp()),

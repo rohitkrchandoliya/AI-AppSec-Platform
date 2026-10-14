@@ -16,7 +16,7 @@ A developer-first application security scanner that combines deterministic sourc
 - **SARIF fingerprints:** line-evidence hashes and stable finding IDs support repeatable code-scanning comparisons when unrelated lines are inserted. Only hashes are emitted; raw finding evidence is not included in SARIF results.
 - **Quality checks:** GitHub Actions CI runs Ruff, pytest, and mypy.
 
-This is an early MVP with intentionally limited rule coverage. The JavaScript/TypeScript checks are regex-based, not full semantic or taint analysis. A clean scan does not prove that a repository is secure.
+This is an early MVP with intentionally limited rule coverage. The JavaScript/TypeScript checks are regex-based, not full semantic or taint analysis. A clean scan does not prove that a repository is secure. Review [the threat model](THREAT_MODEL.md) before using results as a release gate.
 
 ## Quick start
 
@@ -79,9 +79,10 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 5. Never commit credentials, API keys, tokens, or private customer data.
 6. Test scanners as security-critical software and document limitations.
 
-## Roadmap
+## Roadmap and security documentation
 
-See [ROADMAP.md](ROADMAP.md) for the implementation plan and production-readiness gates.
+- [Roadmap and release gates](ROADMAP.md)
+- [Threat model, trust boundaries, and safe operating guidance](THREAT_MODEL.md)
 
 ## Current limitations
 
@@ -90,7 +91,7 @@ See [ROADMAP.md](ROADMAP.md) for the implementation plan and production-readines
 - Secret patterns do not cover every provider, token type, encoding, or credential storage pattern.
 - Dependency inventory, OSV advisory lookup, risk scoring, and SBOM generation currently cover Python manifests and exact-pinned versions only; they do not resolve packages, evaluate every environment marker, or analyze JavaScript, Rust, Go, or other ecosystems.
 - A provider-neutral reasoning contract and response-validation prototype exists, but no AI provider adapter or scan-CLI reasoning workflow is integrated yet. GitHub PR integration, API, dashboard, authentication, and team workflows are not implemented yet.
-- Production readiness requires broader fixtures and coverage, dependency pinning/lock strategy, a documented threat model, reproducible builds, and repository governance.
+- Production readiness still requires dependency pinning/lock strategy, reproducible builds, CI security checks, repository-history review, and a green final release verification on the merged main branch.
 
 ## License
 

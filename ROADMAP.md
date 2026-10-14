@@ -2,7 +2,7 @@
 
 ## MVP release scope
 
-The current release target is a tested local-first AppSec MVP: CLI scanning, secret detection, Python dependency inventory/advisories, machine-readable reports, opt-in AI reasoning and review-only patch proposals, a bounded local API/dashboard, opt-in SQLite history, project-scoped team roles, and GitHub Actions PR checks. It is not a hosted multi-tenant SaaS platform. Cross-repository GitHub App installation/webhooks remain post-MVP.
+The current release target is a tested local-first AppSec MVP: CLI scanning, secret detection, Python dependency inventory/advisories, machine-readable reports, opt-in AI reasoning and review-only patch proposals, a bounded local API/dashboard, opt-in SQLite history, project-scoped team roles, and GitHub Actions PR checks including a reusable workflow for other repositories. It is not a hosted multi-tenant SaaS platform; centralized GitHub App webhooks remain post-MVP.
 
 ## Phase 0 — Foundation
 - [x] Repository structure
@@ -41,7 +41,8 @@ The current release target is a tested local-first AppSec MVP: CLI scanning, sec
 - [x] Guardrails for finding identity, supplied references, and unsupported CVE/CWE identifiers
 
 ## Phase 4 — GitHub Developer Workflow
-- [ ] Cross-repository GitHub App installation/webhooks (post-MVP; same-repository PR checks are implemented with GitHub Actions)
+- [x] Reusable cross-repository GitHub Actions PR scanning workflow (trusted scanner checkout, SARIF, annotations, severity gate, dedicated check run)
+- [ ] Centralized GitHub App installation/webhooks (post-MVP; reusable Actions workflow covers current integration needs)
 - [x] Pull-request source scanning workflow (GitHub Actions scans `appsec/` on PRs)
 - [x] Inline workflow annotations generated from SARIF results
 - [x] Severity-based security gate (`--fail-on`; high/critical findings fail the PR scan job)

@@ -101,6 +101,17 @@ APPSEC_DB_PATH=.appsec-state.sqlite3 APPSEC_API_TOKEN="$APPSEC_API_TOKEN" uv run
 
 With `APPSEC_API_TOKEN` set, data endpoints require `Authorization: Bearer <token>`; the dashboard accepts the token in its password field and does not persist it. This enables `POST /projects`, `GET /projects`, `GET /history?project=NAME`, `GET /history/SCAN_ID`, and `GET /usage`. To save a scan under a named project, include `"project": "demo"` alongside the `"files"` map in the `POST /scan` JSON body. The SQLite database stores scan results and redacted finding evidence/metadata, not the submitted full source files. Protect the database file. The local API is loopback-only. Optional shared bearer-token authentication can be enabled with `APPSEC_API_TOKEN` (minimum 32 ASCII characters); the dashboard token field keeps it in page memory only. This is not per-user authorization, team access control, or a substitute for TLS and deployment hardening.
 
+### Optional GitHub App check-run integration
+
+The repository includes an optional `pull_request_target` workflow that scans same-repository PR source as data and creates a dedicated GitHub Checks API result with finding annotations. It does not execute scripts from the PR checkout. The workflow is skipped until the GitHub App secrets are configured.
+
+1. Install a GitHub App on this repository with **Contents: read** and **Checks: read/write** permissions.
+2. Add repository Actions secrets named `APP_ID` and `APP_PRIVATE_KEY`.
+3. Open or update a same-repository pull request targeting `main`; the workflow will create an `AI AppSec Security Gate` check on the PR head SHA.
+4. Fork-originated PRs still use the ordinary GitHub Actions workflow; the dedicated App check is currently limited to same-repository PRs.
+
+The dedicated check is optional and requires the App installation/secrets to be configured by a repository administrator. Do not use `pull_request_target` to execute untrusted PR code.
+
 ## How it works
 
 1. The CLI accepts a project directory.

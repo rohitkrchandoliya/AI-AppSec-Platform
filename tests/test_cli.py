@@ -152,3 +152,22 @@ def test_baseline_options_are_mutually_exclusive(tmp_path: Path) -> None:
         ],
     )
     assert result.exit_code != 0
+
+
+
+def test_patch_proposals_require_json_or_human_output(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app, ["scan", str(tmp_path), "--sarif", "--propose-patches"]
+    )
+    assert result.exit_code != 0
+
+
+def test_patch_proposals_with_no_findings_do_not_require_ai_key(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    result = runner.invoke(app, ["scan", str(tmp_path), "--json", "--propose-patches"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["ai_patch_proposals"] == []

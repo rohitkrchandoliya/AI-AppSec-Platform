@@ -2,10 +2,11 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 from typer.testing import CliRunner
 
-import appsec.cli as cli
+from appsec import cli
 from appsec.models import Finding, Severity
 
 runner = CliRunner()
@@ -26,7 +27,7 @@ def _finding(path: Path, line: int = 2) -> Finding:
 
 def test_json_explain_adds_ai_reasoning_without_live_network(
     tmp_path: Path,
-    monkeypatch,
+    monkeypatch: Any,
 ) -> None:
     (tmp_path / "sample.py").write_text("eval(user_input)\n", encoding="utf-8")
     monkeypatch.setattr(
@@ -55,7 +56,7 @@ def test_json_explain_adds_ai_reasoning_without_live_network(
 
 def test_explain_rejects_sarif_combination_before_provider_call(
     tmp_path: Path,
-    monkeypatch,
+    monkeypatch: Any,
 ) -> None:
     def fail_if_called(root: Path, findings: list[Finding]) -> list[dict[str, object]]:
         raise AssertionError("AI provider should not be called for an incompatible output mode.")

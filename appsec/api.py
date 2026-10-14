@@ -235,42 +235,77 @@ class _Handler(BaseHTTPRequestHandler):
         if route == "/health":
             self._send_json(200, {"status": "ok", "service": "ai-appsec-platform"})
             return
+
         database = os.getenv("APPSEC_DB_PATH")
-        if route in {"/projects", "/history", "/usage"} or route.startswith("/history/"):
-            if not database:
-                self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable local history."})
-                return
-            db_path = Path(database).expanduser()
-            try:
-                if route == "/projects":
-                    self._send_json(200, {"projects": list_projects(db_path)})
-                elif route == "/history":
-                    query = parse_qs(parsed.query)
-                    project = query.get("project", [None])[0]
-                    limit = int(query.get("limit", ["50"])[0])
-                    scans = list_scans(db_path, project_name=project, limit=limit)
-                    self._send_json(200, {"scans": scans})
-                elif route == "/usage":
-                    self._send_json(200, usage_summary(db_path))
-                else:
-                    try:
-                        scan_id = int(route.removeprefix("/history/"))
-                    except ValueError:
-                        self._send_json(400, {"error": "Scan ID must be an integer."})
-                        return
-                    scan = get_scan(db_path, scan_id)
-                    if scan is None:
-                        self._send_json(404, {"error": "Scan not found."})
-                    else:
-                        self._send_json(200, scan)
-            except (OSError, sqlite3.Error, ValueError, TypeError):
-                self._send_json(400, {"error": "Could not query local scan history."})
+        member_route = route.strip("/").split("/")
+        is_member_list = (
+            len(member_route) == 3
+            and member_route[0] == "projects"
+            and member_route[2] == "members"
+        )
+        if route not in {"/users", "/projects", "/history", "/usage"} and not (
+            route.startswith("/history/") or is_member_list
+        ):
+            self._send_json(404, {"error": "Not found."})
             return
-        self._send_json(404, {"error": "Not found."})
+        if not database:
+            self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable local project features."})
+            return
+        db_path = Path(database).expanduser()
+        username = self._principal.get("username")
+        username_filter = username if isinstance(username, str) else None
+        try:
+            if route == "/users":
+                if not self._principal.get("shared_admin"):
+                    self._send_json(403, {"error": "Only the configured administrator can list users."})
+                    return
+                self._send_json(200, {"users": list_users(db_path)})
+            elif route == "/projects":
+                self._send_json(
+                    200, {"projects": list_projects(db_path, username=username_filter)}
+                )
+            elif route == "/history":
+                query = parse_qs(parsed.query)
+                project = query.get("project", [None])[0]
+                limit = int(query.get("limit", ["50"])[0])
+                scans = list_scans(
+                    db_path,
+                    project_name=project,
+                    username=username_filter,
+                    limit=limit,
+                )
+                self._send_json(200, {"scans": scans})
+            elif route == "/usage":
+                self._send_json(200, usage_summary(db_path, username=username_filter))
+            elif route.startswith("/history/"):
+                try:
+                    scan_id = int(route.removeprefix("/history/"))
+                except ValueError:
+                    self._send_json(400, {"error": "Scan ID must be an integer."})
+                    return
+                scan = get_scan(db_path, scan_id, username=username_filter)
+                if scan is None:
+                    self._send_json(404, {"error": "Scan not found."})
+                else:
+                    self._send_json(200, scan)
+            else:
+                project_name = unquote(member_route[1])
+                if not self._can_manage_project(db_path, project_name):
+                    self._send_json(403, {"error": "Project administrator role required."})
+                    return
+                self._send_json(
+                    200, {"members": list_project_members(db_path, project_name)}
+                )
+        except (OSError, sqlite3.Error, ValueError, TypeError):
+            self._send_json(400, {"error": "Could not query local project data."})
 
     def do_POST(self) -> None:
         route = urlsplit(self.path).path
-        if route not in {"/scan", "/projects"}:
+        parts = route.strip("/").split("/")
+        is_member_route = (
+            len(parts) == 3 and parts[0] == "projects" and parts[2] == "members"
+        )
+        if route not in {"/scan", "/projects", "/users"} and not is_member_route:
             self._send_json(404, {"error": "Not found."})
             return
         if not self._authorize(route):
@@ -289,36 +324,90 @@ class _Handler(BaseHTTPRequestHandler):
         if length > _MAX_REQUEST_BYTES:
             self._send_json(413, {"error": "Request body exceeds the size limit."})
             return
+
         try:
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            database = os.getenv("APPSEC_DB_PATH")
+            db_path = Path(database).expanduser() if database else None
+
+            if route == "/users":
+                if not self._principal.get("shared_admin"):
+                    self._send_json(403, {"error": "Only the configured administrator can create users."})
+                    return
+                if db_path is None:
+                    self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable local users."})
+                    return
+                if not isinstance(payload, dict) or "username" not in payload:
+                    self._send_json(400, {"error": "Request JSON must contain a username."})
+                    return
+                user_token = secrets.token_urlsafe(32)
+                try:
+                    user = create_user(db_path, payload["username"], user_token)
+                except sqlite3.IntegrityError:
+                    self._send_json(409, {"error": "A user with that username already exists."})
+                    return
+                self._send_json(201, {"user": user, "token": user_token})
+                return
+
             if route == "/projects":
-                database = os.getenv("APPSEC_DB_PATH")
-                if not database:
-                    self._send_json(
-                        503, {"error": "Set APPSEC_DB_PATH to enable local projects."}
-                    )
+                if db_path is None:
+                    self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable local projects."})
                     return
                 if not isinstance(payload, dict) or "name" not in payload:
                     self._send_json(400, {"error": "Request JSON must contain a project name."})
                     return
+                owner = self._principal.get("username")
                 try:
-                    project = create_project(Path(database).expanduser(), payload["name"])
+                    project = create_project(
+                        db_path,
+                        payload["name"],
+                        owner_username=owner if isinstance(owner, str) else None,
+                    )
                 except sqlite3.IntegrityError:
                     self._send_json(409, {"error": "A project with that name already exists."})
                     return
                 self._send_json(201, {"project": project})
                 return
+
+            if is_member_route:
+                if db_path is None:
+                    self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable project teams."})
+                    return
+                project_name = unquote(parts[1])
+                if not self._can_manage_project(db_path, project_name):
+                    self._send_json(403, {"error": "Project administrator role required."})
+                    return
+                if not isinstance(payload, dict) or "username" not in payload:
+                    self._send_json(400, {"error": "Request JSON must contain a username."})
+                    return
+                member = add_project_member(
+                    db_path,
+                    project_name,
+                    payload["username"],
+                    payload.get("role", "viewer"),
+                )
+                self._send_json(201, {"member": member})
+                return
+
             files = _validate_files(payload)
             result = scan_files(files)
-            database = os.getenv("APPSEC_DB_PATH")
-            if database:
+            if db_path is not None:
                 project_name = (
                     payload.get("project", "default")
                     if isinstance(payload, dict)
                     else "default"
                 )
+                username = self._principal.get("username")
+                if isinstance(username, str):
+                    role = project_role(db_path, project_name, username)
+                    if role not in {"admin", "editor"}:
+                        self._send_json(
+                            403,
+                            {"error": "Project editor or administrator membership is required to scan."},
+                        )
+                        return
                 scan_id = save_scan(
-                    Path(database).expanduser(),
+                    db_path,
                     project_name,
                     result,
                     sum(len(value.encode("utf-8")) for value in files.values()),
@@ -334,7 +423,42 @@ class _Handler(BaseHTTPRequestHandler):
         except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
             self._send_json(400, {"error": str(exc)})
         except (OSError, sqlite3.Error):
-            self._send_json(500, {"error": "Local scan persistence failed."})
+            self._send_json(500, {"error": "Local project or scan persistence failed."})
+
+    def do_DELETE(self) -> None:
+        route = urlsplit(self.path).path
+        parts = route.strip("/").split("/")
+        if not (
+            len(parts) == 4
+            and parts[0] == "projects"
+            and parts[2] == "members"
+        ):
+            self._send_json(404, {"error": "Not found."})
+            return
+        if not self._authorize(route):
+            return
+        database = os.getenv("APPSEC_DB_PATH")
+        if not database:
+            self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable project teams."})
+            return
+        db_path = Path(database).expanduser()
+        project_name = unquote(parts[1])
+        username = unquote(parts[3])
+        if not self._can_manage_project(db_path, project_name):
+            self._send_json(403, {"error": "Project administrator role required."})
+            return
+        try:
+            removed = remove_project_member(db_path, project_name, username)
+        except ValueError as exc:
+            self._send_json(409, {"error": str(exc)})
+            return
+        except (OSError, sqlite3.Error):
+            self._send_json(500, {"error": "Could not update project membership."})
+            return
+        if not removed:
+            self._send_json(404, {"error": "Project member not found."})
+            return
+        self._send_json(200, {"removed": True, "project": project_name, "username": username})
 
     def log_message(self, format: str, *args: object) -> None:
         """Keep request logging concise and avoid reflecting request bodies."""

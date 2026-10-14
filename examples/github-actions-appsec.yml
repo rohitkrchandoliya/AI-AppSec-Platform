@@ -1,0 +1,13 @@
+name: AI AppSec
+
+on:
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  security:
+    uses: rohitkrchandoliya/ai-appsec-platform/.github/workflows/reusable-appsec-scan.yml@main

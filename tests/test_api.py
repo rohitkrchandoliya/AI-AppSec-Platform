@@ -220,7 +220,7 @@ def test_api_refuses_non_loopback_binding() -> None:
 
 
 def test_optional_bearer_token_protects_data_routes(tmp_path, monkeypatch) -> None:
-    token = "local-test-token-that-is-longer-than-32-characters"
+    token = bytes(range(32)).hex()
     monkeypatch.setenv("APPSEC_API_TOKEN", token)
     monkeypatch.setenv("APPSEC_DB_PATH", str(tmp_path / "appsec.sqlite3"))
     from appsec.api import create_server
@@ -268,7 +268,7 @@ def test_api_rejects_short_configured_token(monkeypatch) -> None:
 
 
 def test_project_team_roles_enforce_scan_and_history_access(tmp_path, monkeypatch) -> None:
-    admin_token = "global-admin-token-longer-than-32-characters"
+    admin_token = bytes(range(32)).hex()
     monkeypatch.setenv("APPSEC_API_TOKEN", admin_token)
     monkeypatch.setenv("APPSEC_DB_PATH", str(tmp_path / "team.sqlite3"))
     from appsec.api import create_server

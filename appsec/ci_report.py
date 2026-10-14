@@ -1,8 +1,9 @@
 """Translate SARIF results into safe GitHub Actions workflow annotations."""
 
 import json
+import os
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 
@@ -22,8 +23,19 @@ def _escape_property(value: str) -> str:
     )
 
 
-def emit_annotations(document: dict[str, Any]) -> int:
+def emit_annotations(document: dict[str, Any], path_prefix: str = "") -> int:
     """Emit one workflow annotation per SARIF result and return the result count."""
+    prefix = path_prefix.strip("/")
+    prefix_path = PurePosixPath(prefix)
+    if prefix and (
+        prefix_path.is_absolute()
+        or ".." in prefix_path.parts
+        or "\\" in prefix
+        or "\n" in prefix
+        or "\r" in prefix
+    ):
+        raise ValueError("Annotation path prefix must be a safe relative path.")
+
     runs = document.get("runs")
     if not isinstance(runs, list):
         raise TypeError("SARIF document must contain a runs list.")
@@ -54,7 +66,18 @@ def emit_annotations(document: dict[str, Any]) -> int:
                     artifact = physical.get("artifactLocation", {})
                     region = physical.get("region", {})
                     if isinstance(artifact, dict) and isinstance(artifact.get("uri"), str):
-                        properties = f" file={_escape_property(artifact['uri'])}"
+                        uri = artifact["uri"]
+                        source_path = PurePosixPath(uri)
+                        if (
+                            uri
+                            and not source_path.is_absolute()
+                            and ".." not in source_path.parts
+                            and "\\" not in uri
+                            and "\n" not in uri
+                            and "\r" not in uri
+                        ):
+                            annotation_path = f"{prefix}/{uri}" if prefix else uri
+                            properties = f" file={_escape_property(annotation_path)}"
                     if isinstance(region, dict) and isinstance(region.get("startLine"), int):
                         properties += f",line={region['startLine']}"
             print(f"::{command}{properties}::{_escape_data(f'[{rule_id}] {message}')}")
@@ -71,7 +94,8 @@ def main() -> int:
         document = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
         if not isinstance(document, dict) or document.get("version") != "2.1.0":
             raise ValueError("Expected a SARIF 2.1.0 document.")
-        count = emit_annotations(document)
+        prefix = os.getenv("APPSEC_ANNOTATION_PATH_PREFIX", "")
+        count = emit_annotations(document, prefix)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
         print(f"Could not emit SARIF annotations: {exc}", file=sys.stderr)
         return 2

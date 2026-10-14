@@ -132,8 +132,9 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 - Secret patterns do not cover every provider, token type, encoding, or credential storage pattern.
 - Dependency inventory, OSV advisory lookup, risk scoring, and SBOM generation currently cover Python manifests and exact-pinned versions only; they do not resolve packages, evaluate every environment marker, or analyze JavaScript, Rust, Go, or other ecosystems.
 - AI reasoning and patch proposals are advisory, may be wrong, require a configured external provider, and are not a substitute for security review. Patch proposals are returned for manual review only and are never applied automatically.
-- The initial GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, emits escaped GitHub Actions check annotations from SARIF, and uploads a SARIF artifact. GitHub App installation, GitHub API check-run creation, dashboard, project management, authentication/authorization, historical findings, team workflows, and usage metering are not implemented yet.
-- Production readiness still requires dependency pinning/lock strategy, reproducible builds, CI security checks, repository-history review, and a green final release verification on the merged main branch.
+- The GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, emits escaped workflow annotations, uploads SARIF, and publishes a dedicated GitHub Checks API result for same-repository pull requests. Fork PRs rely on the ordinary workflow status because their token is read-only.
+- The optional local API/dashboard supports project registry, opt-in scan history and usage counters, and optional shared bearer-token authentication. It remains loopback-only and does not provide per-user roles or team access controls. Protect the SQLite history file because finding snippets may still contain sensitive code.
+- This is not a hosted multi-tenant SaaS. A custom GitHub App installation is not required for the standard check-run workflow; per-user authorization/team workflows remain future scope.
 
 ## License
 

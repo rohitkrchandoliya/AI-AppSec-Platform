@@ -1,0 +1,92 @@
+name: GitHub App Security Check
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  app-check:
+    name: GitHub App check-run reporting
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check GitHub App configuration
+        id: app-config
+        env:
+          APP_ID: ${{ secrets.APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+        run: |
+          if [[ -n "$APP_ID" && -n "$APP_PRIVATE_KEY" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### GitHub App check-run skipped"
+              echo "Configure repository secrets `APP_ID` and `APP_PRIVATE_KEY` to enable the dedicated AppSec check."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.app-config.outputs.enabled == 'true'
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        if: steps.app-config.outputs.enabled == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dependencies from trusted base revision
+        if: steps.app-config.outputs.enabled == 'true'
+        run: |
+          python -m pip install uv==0.13.0
+          uv sync --locked --all-extras
+
+      # This checks out PR content as data only. Never execute scripts from target/.
+      - name: Check out pull request source for scanning
+        if: steps.app-config.outputs.enabled == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: target
+          persist-credentials: false
+
+      - name: Create scoped GitHub App token
+        if: steps.app-config.outputs.enabled == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: read
+          permission-checks: write
+
+      - name: Scan pull request source and write SARIF
+        if: steps.app-config.outputs.enabled == 'true'
+        continue-on-error: true
+        run: uv run --locked appsec scan target --sarif > appsec-results.sarif
+
+      - name: Create GitHub App check run
+        if: always() && steps.app-config.outputs.enabled == 'true' && hashFiles('appsec-results.sarif') != ''
+        env:
+          APPSEC_GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          APPSEC_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: uv run --locked python -m appsec.github_check appsec-results.sarif
+
+      - name: Upload pull request SARIF
+        if: always() && steps.app-config.outputs.enabled == 'true' && hashFiles('appsec-results.sarif') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-app-appsec-sarif
+          path: appsec-results.sarif
+          if-no-files-found: error
+          retention-days: 14

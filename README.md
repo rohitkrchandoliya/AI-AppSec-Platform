@@ -20,12 +20,13 @@ This is an early MVP with intentionally limited rule coverage. The JavaScript/Ty
 
 ## Quick start
 
-Requires Python 3.12 or newer.
+Requires Python 3.12 or newer. `uv.lock` pins resolved direct and transitive dependencies; use `uv sync --locked` to install the committed versions. Update dependencies intentionally with `uv lock` and commit the resulting lockfile.
 
 ```bash
-python -m venv .venv
-# Activate the environment for your shell, then:
-python -m pip install -e ".[dev]"
+python -m pip install uv==0.13.0
+uv sync --locked --all-extras
+# Run commands through the locked environment:
+uv run --locked appsec scan ./path-to-project
 ```
 
 Run a human-readable scan:

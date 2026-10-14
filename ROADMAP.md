@@ -46,15 +46,15 @@ The current release target is a tested local CLI MVP for deterministic source sc
 - [x] Inline workflow annotations generated from SARIF results
 - [x] Severity-based security gate (`--fail-on`; high/critical findings fail the PR scan job)
 - [x] Local JSON baseline and deterministic finding suppression (`--baseline`, `--write-baseline`)
-- [ ] Check-run reporting
+- [x] GitHub API check-run reporting for same-repository pull requests (dedicated `AI AppSec Security Gate`; fork PRs use the normal workflow status because their token is read-only)
 
 ## Phase 5 — Product Layer
 - [x] Local JSON API service (`/health`, bounded `POST /scan`; loopback-only default)
 - [x] Local web dashboard for source submission, findings, and dependency risk
 - [x] Local project registry and project-scoped scan history
 - [x] SQLite-backed historical scan results and findings
-- [ ] Team workflows
-- [ ] Authentication and authorization
+- [ ] Team workflows (shared findings ownership, collaboration, and role-aware workflows)
+- [ ] Authentication and authorization (not implemented; API remains loopback-only)
 - [x] Local usage counters (scan count, files, findings, source bytes; no billing)
 
 ## Quality gates
@@ -76,4 +76,4 @@ Before calling the CLI MVP production-ready:
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, local baseline/suppression, and guarded review-only AI patch proposals are implemented; GitHub App integration, GitHub API check-run creation, dashboard, authentication/authorization, team workflows, and GitHub App integration remain separate roadmap work. Local project history and usage counters are opt-in via `APPSEC_DB_PATH` and do not provide billing or multi-user access controls.
+- The local CLI quality gates have passed on main in subsequent CI runs; always verify the latest merged-main run before release. The PR scan workflow, severity gate, local baseline/suppression, guarded review-only AI patch proposals, local API/dashboard, project registry, scan history, usage counters, and dedicated GitHub API check-run reporting are implemented. GitHub App installation and multi-user authentication/authorization/team workflows remain out of scope until their trust boundaries and deployment model are designed. Local project history and usage counters are opt-in via `APPSEC_DB_PATH` and do not provide billing or multi-user access controls.

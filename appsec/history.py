@@ -61,7 +61,7 @@ def validate_project_name(name: Any) -> str:
     normalized = name.strip()
     if not _PROJECT_NAME.fullmatch(normalized):
         raise ValueError(
-            "Project name must be 1-64 safe letters, numbers, spaces, '.', '_' or '-'.")
+            "Project name must be 1-64 safe letters, numbers, spaces, '.', '_' or '-'."
         )
     return normalized
 

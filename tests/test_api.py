@@ -258,5 +258,5 @@ def test_api_rejects_short_configured_token(monkeypatch) -> None:
     monkeypatch.setenv("APPSEC_API_TOKEN", "too-short")
     from appsec.api import create_server
 
-    with pytest.raises(ValueError, match="32 characters"):
+    with pytest.raises(ValueError, match="32 ASCII characters"):
         create_server("127.0.0.1", 0)

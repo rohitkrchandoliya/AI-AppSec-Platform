@@ -25,7 +25,7 @@ _SOURCE_EXTENSIONS = (
 def _validate_files(payload: Any) -> dict[str, str]:
     """Validate the in-memory source payload before writing any files."""
     if not isinstance(payload, dict) or not isinstance(payload.get("files"), dict):
-        raise ValueError("Request JSON must contain a 'files' object.")
+        raise TypeError("Request JSON must contain a 'files' object.")
     files = payload["files"]
     if not files or len(files) > _MAX_FILES:
         raise ValueError(f"'files' must contain between 1 and {_MAX_FILES} entries.")
@@ -34,7 +34,7 @@ def _validate_files(payload: Any) -> dict[str, str]:
     total_bytes = 0
     for name, contents in files.items():
         if not isinstance(name, str) or not isinstance(contents, str):
-            raise ValueError("File names and contents must be strings.")
+            raise TypeError("File names and contents must be strings.")
         path = PurePosixPath(name)
         if (
             not name

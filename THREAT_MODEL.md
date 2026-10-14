@@ -72,3 +72,8 @@ The browser dashboard serves only packaged static assets with a restrictive Cont
 Persistent history is disabled unless `APPSEC_DB_PATH` is set. When enabled, SQLite stores project names, timestamps, usage counters, scan result JSON, and redacted finding evidence/metadata; it does not store the submitted full source files. Finding snippets may still reveal sensitive code, so protect the database file and remove it when no longer needed. The service is local-only and has no multi-user authorization or billing.
 
 AI patch proposals are untrusted suggestions. The application validates finding identity, relative path, single-file diff headers, hunk presence, size, and likely secret patterns. It never applies the proposal to the working tree. Developers must review the diff and run their own tests before applying any changes.
+
+
+## GitHub App PR check workflow
+
+The optional GitHub App workflow uses `pull_request_target` only to obtain a scoped Checks API token and run the trusted base-branch scanner. PR contents are checked out into a separate directory as data; no PR scripts, build steps, package hooks, or tests are executed. The App token is passed only to the trusted check-run reporter, not to the scanner. The workflow is restricted to same-repository pull requests and requires administrator-configured `APP_ID` and `APP_PRIVATE_KEY` secrets. The check reporter validates SARIF paths and limits inline annotations to 50 per check request. Fork PRs are handled by the standard read-only Actions workflow until a safe cross-repository App flow is implemented.

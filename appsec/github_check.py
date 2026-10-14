@@ -29,7 +29,8 @@ def _annotation(result: dict[str, Any]) -> dict[str, Any] | None:
         return None
     normalized = PurePosixPath(path)
     if (
-        normalized.is_absolute()
+        not path
+        or normalized.is_absolute()
         or ".." in normalized.parts
         or "\\" in path
         or "\n" in path
@@ -37,9 +38,15 @@ def _annotation(result: dict[str, Any]) -> dict[str, Any] | None:
     ):
         return None
     level = result.get("level", "warning")
-    annotation_level = "failure" if level == "error" else "warning" if level == "warning" else "notice"
+    annotation_level = (
+        "failure" if level == "error" else "warning" if level == "warning" else "notice"
+    )
     message_obj = result.get("message", {})
-    message = message_obj.get("text", "Security finding") if isinstance(message_obj, dict) else "Security finding"
+    message = (
+        message_obj.get("text", "Security finding")
+        if isinstance(message_obj, dict)
+        else "Security finding"
+    )
     rule_id = str(result.get("ruleId", "APPSEC"))
     return {
         "path": path,
@@ -77,7 +84,10 @@ def build_check_payload(document: dict[str, Any], head_sha: str) -> dict[str, An
         f"Annotations attached: {len(annotations)}."
     )
     if omitted:
-        summary += f" {omitted} additional results are not inline because GitHub accepts at most 50 annotations per request."
+        summary += (
+            f" {omitted} additional results are not inline because GitHub accepts "
+            "at most 50 annotations per request."
+        )
     return {
         "name": _CHECK_NAME,
         "head_sha": head_sha,
@@ -97,7 +107,9 @@ def create_check_run(sarif_path: Path) -> dict[str, Any]:
     repository = os.getenv("GITHUB_REPOSITORY")
     head_sha = os.getenv("APPSEC_HEAD_SHA")
     if not token or not repository or not head_sha:
-        raise ValueError("APPSEC_GITHUB_TOKEN, GITHUB_REPOSITORY, and APPSEC_HEAD_SHA are required.")
+        raise ValueError(
+            "APPSEC_GITHUB_TOKEN, GITHUB_REPOSITORY, and APPSEC_HEAD_SHA are required."
+        )
     document = json.loads(sarif_path.read_text(encoding="utf-8"))
     if not isinstance(document, dict) or document.get("version") != "2.1.0":
         raise ValueError("Expected a SARIF 2.1.0 document.")

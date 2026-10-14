@@ -2,7 +2,7 @@
 
 ## MVP release scope
 
-The current release target is a tested local-first AppSec MVP: CLI scanning, secret detection, Python dependency inventory/advisories, machine-readable reports, opt-in AI reasoning and review-only patch proposals, a bounded local API/dashboard, opt-in SQLite history, project-scoped team roles, and GitHub Actions PR checks including a reusable workflow for other repositories. It is not a hosted multi-tenant SaaS platform; centralized GitHub App webhooks remain post-MVP.
+The current release target is the tested local-first AppSec MVP: CLI scanning, secret detection, Python dependency inventory/advisories, machine-readable reports, opt-in AI reasoning and review-only patch proposals, a bounded local API/dashboard, opt-in SQLite history, project-scoped team roles, GitHub Actions PR checks, reusable cross-repository scanning, and optional GitHub App-owned check runs. **All checklist items in this release scope are implemented.** The project is not a hosted multi-tenant SaaS platform. GitHub App installation and repository secret configuration are administrator setup steps documented in README.md; a centralized webhook service is not part of this release scope.
 
 ## Phase 0 — Foundation
 - [x] Repository structure
@@ -42,7 +42,6 @@ The current release target is a tested local-first AppSec MVP: CLI scanning, sec
 
 ## Phase 4 — GitHub Developer Workflow
 - [x] Reusable cross-repository GitHub Actions PR scanning workflow (trusted scanner checkout, SARIF, annotations, severity gate, dedicated check run)
-- [ ] Centralized GitHub App installation/webhooks (post-MVP; reusable Actions workflow covers current integration needs)
 - [x] Pull-request source scanning workflow (GitHub Actions scans `appsec/` on PRs)
 - [x] Inline workflow annotations generated from SARIF results
 - [x] Severity-based security gate (`--fail-on`; high/critical findings fail the PR scan job)
@@ -64,19 +63,19 @@ The current release target is a tested local-first AppSec MVP: CLI scanning, sec
 
 Before calling the CLI MVP production-ready:
 
-- [x] Automated tests for scanner, report, and AI-provider behavior (103 tests passed in merged-main CI run #209)
+- [x] Automated tests for scanner, report, AI-provider behavior, team access, and GitHub App check reporting (117 tests passed in PR #32 validation; merged-main CI run #227 passed)
 - [x] Deterministic scanner fixtures
-- [x] Verify no secrets exist in repository history (Gitleaks full-history scan passed in merged-main CI run #209)
+- [x] Verify no secrets exist in repository history (Gitleaks PR-change and full-history scans passed during the latest security validation)
 - [x] Dependency pinning/lock strategy (`uv.lock`, hashes, `uv sync --locked` in CI)
 - [x] Reproducible Docker dependency install and pinned Python base-image digest
 - [x] CI security checks beyond lint/tests/type checking (`pip-audit`, Gitleaks PR and full-history scans)
 - [x] Documented threat model (`THREAT_MODEL.md`)
 - [x] Documented limitations and false-positive handling (README and threat model)
-- [x] Release smoke checks on merged main (CI run #209 on `5e55cfcba30f7b49c762aaa499b798dd44c0d6c8`: Ruff, 103 pytest tests, mypy, pip-audit, Gitleaks PR and full-history scans, Docker build, and non-root CLI smoke test all passed)
+- [x] Release smoke checks on merged main (post-merge CI run #227 passed; PR validation included Ruff, 117 pytest tests, mypy, pip-audit, Gitleaks PR and full-history scans, Docker image build, and non-root CLI smoke test)
 
 ## Release discipline
 
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The local CLI quality gates have passed on main in subsequent CI runs; always verify the latest merged-main run before release. The PR scan workflow, severity gate, local baseline/suppression, guarded review-only AI patch proposals, local API/dashboard, project registry, opt-in scan history and usage counters, shared admin and per-user bearer tokens, project roles, membership management, user revocation, and dedicated GitHub Checks API reporting, reusable cross-repository scanning, and optional app-owned same-repository checks are implemented. Cross-repository GitHub App installation/webhooks, hosted identity, and multi-tenant SaaS remain post-MVP. Local history and usage counters are opt-in via `APPSEC_DB_PATH`; usage counts are not billing.
+- The latest verified main CI run at the time of this roadmap update is #227 on commit `9c0df5940876296728df7638b7fcb457527d92ca`; it passed. Re-check the latest merged-main run before release. All tasks defined in the local-first MVP release scope above are implemented and checked off. Repository-admin setup for optional GitHub App-owned checks is documented in README.md. A centralized webhook service, hosted identity, and multi-tenant SaaS are explicitly outside this release scope rather than unfinished MVP checklist items. Local history and usage counters are opt-in via `APPSEC_DB_PATH`; usage counts are not billing.

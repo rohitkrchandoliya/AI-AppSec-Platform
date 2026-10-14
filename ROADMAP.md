@@ -47,7 +47,7 @@ The current release target is a tested local-first AppSec MVP: CLI scanning, sec
 - [x] Inline workflow annotations generated from SARIF results
 - [x] Severity-based security gate (`--fail-on`; high/critical findings fail the PR scan job)
 - [x] Local JSON baseline and deterministic finding suppression (`--baseline`, `--write-baseline`)
-- [x] GitHub API check-run reporting for same-repository pull requests (fork PRs use normal workflow status because their token is read-only)
+- [x] GitHub API check-run reporting for same-repository and fork PRs through a trusted `pull_request_target` workflow (PR source is scanned as data only)
 
 ## Phase 5 — Product Layer
 - [x] Local JSON API service (`/health`, bounded `POST /scan`; loopback-only default)

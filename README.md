@@ -70,7 +70,7 @@ For repositories where you want the same scanner, add a caller workflow like thi
 name: AI AppSec
 
 on:
-  pull_request:
+  pull_request_target:
     branches: ["main"]
 
 permissions:
@@ -82,7 +82,7 @@ jobs:
     uses: rohitkrchandoliya/ai-appsec-platform/.github/workflows/reusable-appsec-scan.yml@main
 ```
 
-The reusable workflow checks out the scanner from this repository and the target PR source separately. It scans target files as data only; it never runs target scripts, tests, or build hooks. It emits workflow annotations and a SARIF artifact, fails on high/critical findings, and publishes a dedicated check run for same-repository PRs. Fork PRs get workflow annotations and the normal job status because their token cannot write Checks API results. This cross-repository workflow requires no GitHub App private key; centralized webhook-based installation is not included in the local-first MVP.
+The reusable workflow checks out the scanner from this repository and the target PR source separately. It scans target files as data only; it never runs target scripts, tests, or build hooks. It emits workflow annotations and a SARIF artifact, fails on high/critical findings, and publishes a dedicated check run for same-repository PRs. Fork PRs also get a dedicated check run: the trusted `pull_request_target` workflow reads the PR source as data and does not execute it. The ordinary `pull_request` workflow is read-only and has no `checks: write` permission. This cross-repository workflow requires no GitHub App private key; centralized webhook-based installation is not included in the local-first MVP.
 
 ### Optional AI explanations
 

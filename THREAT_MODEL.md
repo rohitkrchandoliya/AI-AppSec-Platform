@@ -4,7 +4,7 @@
 
 This document covers the current local CLI scanner: Python AST rules, JavaScript/TypeScript pattern rules, secret detection, Python dependency inventory, optional OSV advisory lookups, JSON/SARIF reports, and CycloneDX SBOM output.
 
-The MVP is a developer aid, not a complete security assurance system or a hosted multi-tenant service.
+The MVP is a developer aid, not a complete security assurance system or a hosted multi-tenant service. The AI explanation path is opt-in and uses an OpenAI-compatible endpoint; it is not required for deterministic scanning.
 
 ## Assets to protect
 
@@ -20,7 +20,7 @@ The MVP is a developer aid, not a complete security assurance system or a hosted
 - Findings and evidence derived from scanned files must be treated as untrusted output.
 - OSV responses are external data and may be unavailable, malformed, stale, or incomplete.
 - A malicious repository may contain very large files, malformed encodings, symlinks, path traversal attempts, or crafted dependency manifests.
-- Future AI-provider responses must be considered untrusted and must not override deterministic findings or invent security identifiers/references.
+- AI-provider responses must be considered untrusted and must not override deterministic findings or invent security identifiers/references.
 
 ## Current controls
 
@@ -31,7 +31,7 @@ The MVP is a developer aid, not a complete security assurance system or a hosted
 - Findings are normalized, deduplicated, sorted, and assigned source locations.
 - JSON, SARIF 2.1.0, and CycloneDX 1.5 output modes are separate.
 - OSV advisory lookup is opt-in and requires network access.
-- The reasoning prototype uses a strict response schema and rejects finding-identity changes, unsupplied references, and unsupported CVE/CWE identifiers.
+- The opt-in `--explain` path uses a strict response schema and rejects finding-identity changes, unsupplied references, and unsupported CVE/CWE identifiers. Tests use mocked provider responses; production provider behavior still depends on the configured external service.
 
 ## Known limitations and residual risks
 
@@ -40,7 +40,7 @@ The MVP is a developer aid, not a complete security assurance system or a hosted
 - Secret patterns do not cover every provider, token format, encoding, or credential storage method. Redaction reduces exposure but cannot guarantee all secrets are detected.
 - Dependency inventory and risk scoring currently focus on Python manifests/lockfiles and exact-pinned versions; they do not resolve every environment marker or transitive dependency.
 - OSV lookups depend on network availability and third-party advisory quality. Results should be reviewed before gating releases.
-- The reasoning contract is not yet connected to a production AI provider or normal CLI workflow. No AI-generated explanation should be treated as authoritative until that integration has explicit evidence constraints and tests.
+- AI explanations require explicit configuration and an external API key, send a bounded source window after known-pattern redaction, and may still disclose sensitive data that the redactor does not recognize. Review privacy policy before enabling them.
 - There is no hosted API/dashboard, authentication, authorization, tenant isolation, or service-level operational control in the current MVP.
 - The scanner should not be run with elevated privileges on untrusted repositories. Run it in a least-privilege environment and avoid mounting sensitive host paths into CI jobs.
 
@@ -50,8 +50,9 @@ The MVP is a developer aid, not a complete security assurance system or a hosted
 2. Do not provide secrets as test fixtures except synthetic tokens.
 3. Treat reports as potentially sensitive because paths, dependency names, and code excerpts may be present.
 4. Review findings and false positives before using results as a release gate.
-5. Keep the scanner and its development dependencies updated; use CI to run lint, tests, and type checks.
-6. For OSV audits, account for outbound network access and validate results before making release decisions.
+5. Keep the scanner and its development dependencies updated; CI runs lint, tests, type checks, dependency vulnerability auditing, repository-history secret scanning, and a Docker build/smoke test once those checks pass on the target commit.
+6. `uv.lock` now records resolved dependency versions and hashes, CI installs from the lock in locked mode, and the Docker build uses the same lock plus a pinned Python base-image digest. Keep the lock current and review dependency updates before merging.
+7. For OSV audits, account for outbound network access and validate results before making release decisions.
 
 ## Out of scope for this MVP
 

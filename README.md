@@ -20,42 +20,43 @@ This is an early MVP with intentionally limited rule coverage. The JavaScript/Ty
 
 ## Quick start
 
-Requires Python 3.12 or newer.
+Requires Python 3.12 or newer. `uv.lock` pins resolved direct and transitive dependencies; use `uv sync --locked` to install the committed versions. Update dependencies intentionally with `uv lock` and commit the resulting lockfile.
 
 ```bash
-python -m venv .venv
-# Activate the environment for your shell, then:
-python -m pip install -e ".[dev]"
+python -m pip install uv==0.13.0
+uv sync --locked --all-extras
+# Run commands through the locked environment:
+uv run --locked appsec scan ./path-to-project
 ```
 
 Run a human-readable scan:
 
 ```bash
-appsec scan ./path-to-project
+uv run --locked appsec scan ./path-to-project
 ```
 
 Export JSON:
 
 ```bash
-appsec scan ./path-to-project --json
+uv run --locked appsec scan ./path-to-project --json
 ```
 
 Export SARIF 2.1.0:
 
 ```bash
-appsec scan ./path-to-project --sarif
+uv run --locked appsec scan ./path-to-project --sarif
 ```
 
 Audit exact-pinned Python dependencies against OSV (requires network access):
 
 ```bash
-appsec scan ./path-to-project --audit-dependencies --json
+uv run --locked appsec scan ./path-to-project --audit-dependencies --json
 ```
 
 Export a CycloneDX SBOM:
 
 ```bash
-appsec scan ./path-to-project --sbom
+uv run --locked appsec scan ./path-to-project --sbom
 ```
 
 ### Optional AI explanations
@@ -68,8 +69,8 @@ export OPENAI_API_KEY="your-key"
 export OPENAI_MODEL="gpt-4.1-mini"
 export OPENAI_BASE_URL="https://api.openai.com/v1"
 
-appsec scan ./path-to-project --explain
-appsec scan ./path-to-project --json --explain
+uv run --locked appsec scan ./path-to-project --explain
+uv run --locked appsec scan ./path-to-project --json --explain
 ```
 
 **Privacy note:** `--explain` is opt-in. It sends finding metadata and a small redacted source window to the configured endpoint. Review your organization's data-handling policy before using it with private repositories. The implementation redacts recognized secret patterns, but no redaction system can guarantee that every sensitive value is removed. AI output is untrusted, is checked against the finding identity and supplied references, and must be reviewed by a developer. `--explain` cannot be combined with `--sarif` or `--sbom`.

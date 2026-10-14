@@ -50,7 +50,7 @@ The current release target is a tested local CLI MVP for deterministic source sc
 
 ## Phase 5 — Product Layer
 - [x] Local JSON API service (`/health`, bounded `POST /scan`; loopback-only default)
-- [ ] Web dashboard
+- [x] Local web dashboard for source submission, findings, and dependency risk
 - [ ] Project management
 - [ ] Historical findings
 - [ ] Team workflows

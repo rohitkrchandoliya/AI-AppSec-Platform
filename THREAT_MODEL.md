@@ -69,6 +69,11 @@ The optional `appsec-api` service accepts source text as a JSON file map; it doe
 
 The browser dashboard serves only packaged static assets with a restrictive Content Security Policy, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and a no-referrer policy. It uses DOM text insertion rather than rendering scan results as HTML. The API does not enable CORS.
 
-Persistent history is disabled unless `APPSEC_DB_PATH` is set. When enabled, SQLite stores project names, timestamps, usage counters, scan result JSON, and redacted finding evidence/metadata; it does not store the submitted full source files. Finding snippets may still reveal sensitive code, so protect the database file and remove it when no longer needed. The service is local-only and has no multi-user authorization or billing.
+Persistent history is disabled unless `APPSEC_DB_PATH` is set. When enabled, SQLite stores project names, timestamps, usage counters, scan result JSON, and redacted finding evidence/metadata; it does not store the submitted full source files. Finding snippets may still reveal sensitive code, so protect the database file and remove it when no longer needed. The service is local-only and has no hosted identity provider or billing. User tokens and project roles are local SQLite-backed controls, not a substitute for TLS, secure deployment, or external identity management.
 
 AI patch proposals are untrusted suggestions. The application validates finding identity, relative path, single-file diff headers, hunk presence, size, and likely secret patterns. It never applies the proposal to the working tree. Developers must review the diff and run their own tests before applying any changes.
+
+
+## Optional GitHub App check workflow
+
+The optional `.github/workflows/github-app-check.yml` is triggered by `pull_request_target` so its workflow definition and scanner dependencies come from the trusted base revision. It is restricted to same-repository PRs. Pull-request source is checked out under `target/` with checkout credentials disabled and is only parsed as scanner input; no target scripts, tests, package hooks, builds, or dependency installation are run. The short-lived App installation token is limited to this repository's contents-read and checks-write permissions and is exposed only to the trusted check-run reporter. If `APP_ID` or `APP_PRIVATE_KEY` is missing, the optional workflow skips and the standard PR gate remains active. App installation and secrets must be configured by a repository administrator.

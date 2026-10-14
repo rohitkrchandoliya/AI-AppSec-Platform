@@ -30,6 +30,7 @@ from appsec.history import (
     remove_project_member,
     save_scan,
     usage_summary,
+    validate_project_name,
 )
 from appsec.models import DependencyRisk, ScanResult
 from appsec.risk import dependency_risk_score
@@ -400,7 +401,7 @@ class _Handler(BaseHTTPRequestHandler):
             files = _validate_files(payload)
             project_name: Any = "default"
             if db_path is not None:
-                project_name = (
+                project_name = validate_project_name(
                     payload.get("project", "default")
                     if isinstance(payload, dict)
                     else "default"

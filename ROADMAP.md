@@ -49,7 +49,7 @@ The current release target is a tested local CLI MVP for deterministic source sc
 - [ ] Check-run reporting
 
 ## Phase 5 — Product Layer
-- [ ] API service
+- [x] Local JSON API service (`/health`, bounded `POST /scan`; loopback-only default)
 - [ ] Web dashboard
 - [ ] Project management
 - [ ] Historical findings
@@ -76,4 +76,4 @@ Before calling the CLI MVP production-ready:
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, local baseline/suppression, and guarded review-only AI patch proposals are implemented; GitHub App integration, inline annotations/check-run reporting, API/dashboard, authentication, and team features remain separate roadmap work.
+- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, local baseline/suppression, and guarded review-only AI patch proposals are implemented; GitHub App integration, GitHub API check-run creation, dashboard, authentication/authorization, project management, historical findings, team workflows, and usage metering remain separate roadmap work.

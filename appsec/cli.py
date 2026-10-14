@@ -9,7 +9,7 @@ from rich.console import Console
 from appsec import __version__
 from appsec.ai_provider import OpenAICompatibleReasoningProvider
 from appsec.findings import normalize_findings
-from appsec.models import DependencyRisk, Finding, ScanResult
+from appsec.models import DependencyRisk, Finding, ScanResult, Severity
 from appsec.reasoning import GuardedReasoningProvider, build_reasoning_request
 from appsec.redaction import redact_sensitive_text
 from appsec.risk import dependency_risk_score
@@ -114,7 +114,7 @@ def scan(
         "--fail-on",
         case_sensitive=False,
         help="Exit with status 1 when any finding meets or exceeds this severity.",
-    ),
+    ),  # noqa: B008
     explain: bool = typer.Option(
         False,
         "--explain",

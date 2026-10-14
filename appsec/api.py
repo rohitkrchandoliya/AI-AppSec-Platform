@@ -398,7 +398,7 @@ class _Handler(BaseHTTPRequestHandler):
                 return
 
             files = _validate_files(payload)
-            result = scan_files(files)
+            project_name: Any = "default"
             if db_path is not None:
                 project_name = (
                     payload.get("project", "default")
@@ -414,6 +414,15 @@ class _Handler(BaseHTTPRequestHandler):
                             {"error": "Project editor or administrator membership is required to scan."},
                         )
                         return
+            elif isinstance(payload, dict) and "project" in payload:
+                self._send_json(
+                    503, {"error": "Set APPSEC_DB_PATH to save scans under a project."}
+                )
+                return
+
+            # Authorize the project before doing any scanning work.
+            result = scan_files(files)
+            if db_path is not None:
                 scan_id = save_scan(
                     db_path,
                     project_name,
@@ -422,11 +431,6 @@ class _Handler(BaseHTTPRequestHandler):
                 )
                 result["scan_id"] = scan_id
                 result["project"] = project_name
-            elif isinstance(payload, dict) and "project" in payload:
-                self._send_json(
-                    503, {"error": "Set APPSEC_DB_PATH to save scans under a project."}
-                )
-                return
             self._send_json(200, result)
         except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
             self._send_json(400, {"error": str(exc)})

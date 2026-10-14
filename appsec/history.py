@@ -1,9 +1,9 @@
 """Opt-in SQLite persistence for local project and scan history."""
 
 import json
-from contextlib import contextmanager
 import re
 import sqlite3
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterator
@@ -61,8 +61,8 @@ def validate_project_name(name: Any) -> str:
     normalized = name.strip()
     if not _PROJECT_NAME.fullmatch(normalized):
         raise ValueError(
-        "Project name must be 1-64 safe letters, numbers, spaces, '.', '_' or '-'.")
-    )
+            "Project name must be 1-64 safe letters, numbers, spaces, '.', '_' or '-'.")
+        )
     return normalized
 
 
@@ -82,7 +82,7 @@ def create_project(path: Path, name: str) -> dict[str, Any]:
 
 def list_projects(path: Path) -> list[dict[str, Any]]:
     """List projects with scan counts."""
-    with _connect(path) as connection:
+    with _database(path) as connection:
         rows = connection.execute(
             """
             SELECT p.id, p.name, p.created_at, COUNT(s.id) AS scan_count
@@ -99,7 +99,7 @@ def save_scan(
     """Persist scan metadata and redacted result JSON, never the submitted source files."""
     normalized = validate_project_name(project_name)
     created_at = _timestamp()
-    with _connect(path) as connection:
+    with _database(path) as connection:
         connection.execute(
             "INSERT OR IGNORE INTO projects(name, created_at) VALUES (?, ?)",
             (normalized, created_at),
@@ -134,7 +134,7 @@ def list_scans(
 ) -> list[dict[str, Any]]:
     """List recent scan summaries with a hard upper bound."""
     bounded_limit = max(1, min(int(limit), 100))
-    with _connect(path) as connection:
+    with _database(path) as connection:
         if project_name is None:
             rows = connection.execute(
                 """
@@ -161,7 +161,7 @@ def list_scans(
 
 def get_scan(path: Path, scan_id: int) -> dict[str, Any] | None:
     """Retrieve one persisted scan result by ID."""
-    with _connect(path) as connection:
+    with _database(path) as connection:
         row = connection.execute(
             """
             SELECT s.id, p.name AS project, s.created_at, s.files_scanned,
@@ -180,7 +180,7 @@ def get_scan(path: Path, scan_id: int) -> dict[str, Any] | None:
 def usage_summary(path: Path) -> dict[str, Any]:
     """Report local scan usage for the last 30 days."""
     cutoff = (datetime.now(UTC) - timedelta(days=30)).isoformat()
-    with _connect(path) as connection:
+    with _database(path) as connection:
         row = connection.execute(
             """
             SELECT COUNT(*) AS scans, COALESCE(SUM(files_scanned), 0) AS files_scanned,

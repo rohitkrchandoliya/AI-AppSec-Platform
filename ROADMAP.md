@@ -63,17 +63,17 @@ Before calling the CLI MVP production-ready:
 
 - [x] Automated tests for scanner, report, and AI-provider behavior (65 tests passed in CI run #134)
 - [x] Deterministic scanner fixtures
-- [ ] Verify no secrets exist in repository history
-- [ ] Dependency pinning/lock strategy
-- [ ] Reproducible Docker build
-- [ ] CI security checks beyond lint/tests/type checking
+- [x] Verify no secrets exist in repository history (Gitleaks full-history scan passed in main CI run #149)
+- [x] Dependency pinning/lock strategy (`uv.lock`, hashes, `uv sync --locked` in CI)
+- [x] Reproducible Docker dependency install and pinned Python base-image digest
+- [x] CI security checks beyond lint/tests/type checking (`pip-audit`, Gitleaks PR and full-history scans)
 - [x] Documented threat model (`THREAT_MODEL.md`)
 - [x] Documented limitations and false-positive handling (README and threat model)
-- [x] Release smoke checks on merged main (CI run #134: Ruff, 65 pytest tests, and mypy on 17 source files all passed)
+- [x] Release smoke checks on merged main (CI run #149 on `8b928bb5f4084e1e638d51cfee9e3bd481e5259e`: Ruff, 65 pytest tests, mypy, pip-audit, Gitleaks scans, Docker build, and non-root CLI smoke test all passed)
 
 ## Release discipline
 
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- This MVP is usable for local testing, but do not call it production-ready until the remaining quality gates are addressed.
+- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). This does not mean the broader platform is complete: AI patch proposals, GitHub App/PR workflows, API/dashboard, authentication, and team features remain roadmap work.

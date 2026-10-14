@@ -51,11 +51,11 @@ The current release target is a tested local CLI MVP for deterministic source sc
 ## Phase 5 — Product Layer
 - [x] Local JSON API service (`/health`, bounded `POST /scan`; loopback-only default)
 - [x] Local web dashboard for source submission, findings, and dependency risk
-- [ ] Project management
-- [ ] Historical findings
+- [x] Local project registry and project-scoped scan history
+- [x] SQLite-backed historical scan results and findings
 - [ ] Team workflows
 - [ ] Authentication and authorization
-- [ ] Usage metering
+- [x] Local usage counters (scan count, files, findings, source bytes; no billing)
 
 ## Quality gates
 
@@ -76,4 +76,4 @@ Before calling the CLI MVP production-ready:
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, local baseline/suppression, and guarded review-only AI patch proposals are implemented; GitHub App integration, GitHub API check-run creation, dashboard, authentication/authorization, project management, historical findings, team workflows, and usage metering remain separate roadmap work.
+- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow, severity gate, local baseline/suppression, and guarded review-only AI patch proposals are implemented; GitHub App integration, GitHub API check-run creation, dashboard, authentication/authorization, team workflows, and GitHub App integration remain separate roadmap work. Local project history and usage counters are opt-in via `APPSEC_DB_PATH` and do not provide billing or multi-user access controls.

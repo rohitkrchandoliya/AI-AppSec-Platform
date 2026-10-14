@@ -1,6 +1,6 @@
 # AI AppSec Platform
 
-A developer-first application security scanner that combines deterministic source-code and secret checks with normalized findings and machine-readable reports. The current release target is a local CLI MVP; GitHub pull-request workflows and a hosted dashboard remain future phases.
+A developer-first application security scanner with deterministic source-code and secret checks, normalized findings, machine-readable reports, guarded AI patch proposals, GitHub Actions PR checks, and an optional local API/dashboard. It is a local-first tool, not a hosted multi-user SaaS product.
 
 ## Current implementation
 
@@ -74,11 +74,31 @@ export OPENAI_BASE_URL="https://api.openai.com/v1"
 
 uv run --locked appsec scan ./path-to-project --explain
 uv run --locked appsec scan ./path-to-project --json --explain
+# Review-only AI patch proposals; requires configured provider
+uv run --locked appsec scan ./path-to-project --propose-patches
 ```
 
 **Privacy note:** `--explain` is opt-in. It sends finding metadata and a small redacted source window to the configured endpoint. Review your organization's data-handling policy before using it with private repositories. The implementation redacts recognized secret patterns, but no redaction system can guarantee that every sensitive value is removed. AI output is untrusted, is checked against the finding identity and supplied references, and must be reviewed by a developer. `--explain` cannot be combined with `--sarif` or `--sbom`.
 
 Use `--json`, `--sarif`, and `--sbom` separately; they cannot be combined in one invocation.
+
+### Local API, dashboard, and history
+
+Run the local API and browser dashboard (loopback-only; no authentication):
+
+```bash
+uv run --locked appsec-api --port 8765
+```
+
+Open `http://127.0.0.1:8765/`. The dashboard accepts a JSON object mapping safe relative paths to source text and sends it to `POST /scan`. The API never accepts server filesystem paths and refuses non-loopback binds. It limits request size and file count, validates paths, and uses a temporary directory for scans.
+
+Persistence is opt-in. To enable project management, scan history, and local usage counters, set a database path before launching:
+
+```bash
+APPSEC_DB_PATH=.appsec-state.sqlite3 uv run --locked appsec-api --port 8765
+```
+
+This enables `POST /projects`, `GET /projects`, `GET /history?project=NAME`, `GET /history/SCAN_ID`, and `GET /usage`. To save a scan under a named project, include `"project": "demo"` alongside the `"files"` map in the `POST /scan` JSON body. The SQLite database stores scan results and redacted finding evidence/metadata, not the submitted full source files. Protect the database file. The local API has no authentication or multi-user access controls and is not suitable for network exposure.
 
 ## How it works
 

@@ -61,3 +61,14 @@ The MVP is a developer aid, not a complete security assurance system or a hosted
 - A secure hosted service or multi-tenant SaaS deployment.
 - Autonomous code modification or applying AI-generated patches.
 - A guarantee that a repository contains no secrets or known vulnerable dependencies.
+
+
+## Local API, dashboard, and scan history
+
+The optional `appsec-api` service accepts source text as a JSON file map; it does not accept filesystem paths. Requests have a 1 MB total body limit, 128 KB per-file limit, a 200-file limit, and path traversal/control-character checks before files are written into a temporary directory. The server refuses non-loopback bind addresses because the API has no authentication or authorization. Do not add a reverse proxy or change this boundary without first implementing and reviewing authentication, authorization, rate limiting, and deployment hardening.
+
+The browser dashboard serves only packaged static assets with a restrictive Content Security Policy, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and a no-referrer policy. It uses DOM text insertion rather than rendering scan results as HTML. The API does not enable CORS.
+
+Persistent history is disabled unless `APPSEC_DB_PATH` is set. When enabled, SQLite stores project names, timestamps, usage counters, scan result JSON, and redacted finding evidence/metadata; it does not store the submitted full source files. Finding snippets may still reveal sensitive code, so protect the database file and remove it when no longer needed. The service is local-only and has no multi-user authorization or billing.
+
+AI patch proposals are untrusted suggestions. The application validates finding identity, relative path, single-file diff headers, hunk presence, size, and likely secret patterns. It never applies the proposal to the working tree. Developers must review the diff and run their own tests before applying any changes.

@@ -1,6 +1,6 @@
 # AI AppSec Platform
 
-A developer-first application security scanner that combines deterministic source-code and secret checks with normalized findings and machine-readable reports. The longer-term roadmap adds evidence-grounded AI reasoning, remediation support, GitHub pull-request workflows, and a web dashboard.
+A developer-first application security scanner that combines deterministic source-code and secret checks with normalized findings and machine-readable reports. The current release target is a local CLI MVP; GitHub pull-request workflows and a hosted dashboard remain future phases.
 
 ## Current implementation
 
@@ -13,7 +13,7 @@ A developer-first application security scanner that combines deterministic sourc
 - **Dependency risk scoring:** each discovered dependency receives a deterministic 0–100 risk score based on version pinning and OSV-derived advisory severity/count.
 - **Finding normalization:** root-relative paths where possible, deterministic sorting, and duplicate removal.
 - **CLI reports:** human-readable output, JSON (`--json`), and SARIF 2.1.0 (`--sarif`).
-- **SARIF fingerprints:** line-evidence hashes and stable finding IDs support repeatable code-scanning comparisons when unrelated lines are inserted. Only hashes are emitted; raw finding evidence is not included in SARIF results.
+- **Optional AI explanations:** `--explain` asks a configured OpenAI-compatible chat-completions endpoint for explanations, exploitability context, remediation guidance, confidence, and limitations. The deterministic scanner findings remain the source of truth.
 - **Quality checks:** GitHub Actions CI runs Ruff, pytest, and mypy.
 
 This is an early MVP with intentionally limited rule coverage. The JavaScript/TypeScript checks are regex-based, not full semantic or taint analysis. A clean scan does not prove that a repository is secure. Review [the threat model](THREAT_MODEL.md) before using results as a release gate.
@@ -58,6 +58,22 @@ Export a CycloneDX SBOM:
 appsec scan ./path-to-project --sbom
 ```
 
+### Optional AI explanations
+
+Set a key for the OpenAI-compatible endpoint you intend to use. The model can be overridden with `OPENAI_MODEL` and the endpoint with `OPENAI_BASE_URL` (defaults to `https://api.openai.com/v1`).
+
+```bash
+export OPENAI_API_KEY="your-key"
+# Optional:
+export OPENAI_MODEL="gpt-4.1-mini"
+export OPENAI_BASE_URL="https://api.openai.com/v1"
+
+appsec scan ./path-to-project --explain
+appsec scan ./path-to-project --json --explain
+```
+
+**Privacy note:** `--explain` is opt-in. It sends finding metadata and a small redacted source window to the configured endpoint. Review your organization's data-handling policy before using it with private repositories. The implementation redacts recognized secret patterns, but no redaction system can guarantee that every sensitive value is removed. AI output is untrusted, is checked against the finding identity and supplied references, and must be reviewed by a developer. `--explain` cannot be combined with `--sarif` or `--sbom`.
+
 Use `--json`, `--sarif`, and `--sbom` separately; they cannot be combined in one invocation.
 
 ## How it works
@@ -66,7 +82,7 @@ Use `--json`, `--sarif`, and `--sbom` separately; they cannot be combined in one
 2. Python, JavaScript/TypeScript, and secret scanners inspect supported source files; dependency manifests and lockfiles are inventoried separately.
 3. Findings are normalized, sorted, and deduplicated.
 4. The CLI prints human-readable results or exports JSON/SARIF. Optional flags enable OSV advisory lookup and CycloneDX SBOM output.
-5. Planned layers will add evidence-grounded AI explanations and remediation proposals, GitHub PR/check-run integration, and a web API/dashboard.
+5. With explicit `--explain` opt-in, the reasoning provider receives the finding and a bounded, redacted source context. Its structured output is validated before display.
 
 The SARIF `rulesRun` property reports the combined configured rule counts for the source scanners. OSV advisories are queried only when requested and are findings from an external advisory database, not additional fixed scanner rules.
 
@@ -90,7 +106,8 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 - JavaScript/TypeScript analysis is regex-based and may produce false positives or miss indirect/obfuscated cases.
 - Secret patterns do not cover every provider, token type, encoding, or credential storage pattern.
 - Dependency inventory, OSV advisory lookup, risk scoring, and SBOM generation currently cover Python manifests and exact-pinned versions only; they do not resolve packages, evaluate every environment marker, or analyze JavaScript, Rust, Go, or other ecosystems.
-- A provider-neutral reasoning contract and response-validation prototype exists, but no AI provider adapter or scan-CLI reasoning workflow is integrated yet. GitHub PR integration, API, dashboard, authentication, and team workflows are not implemented yet.
+- AI reasoning is advisory, may be wrong, requires a configured external provider, and is not a substitute for security review. The current integration does not generate or apply code patches.
+- GitHub PR integration, API, dashboard, authentication, and team workflows are not implemented yet.
 - Production readiness still requires dependency pinning/lock strategy, reproducible builds, CI security checks, repository-history review, and a green final release verification on the merged main branch.
 
 ## License

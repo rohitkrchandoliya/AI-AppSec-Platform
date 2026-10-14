@@ -41,7 +41,8 @@ The current release target is a tested local-first AppSec MVP: CLI scanning, sec
 - [x] Guardrails for finding identity, supplied references, and unsupported CVE/CWE identifiers
 
 ## Phase 4 — GitHub Developer Workflow
-- [ ] Cross-repository GitHub App installation/webhooks (post-MVP; same-repository PR checks are implemented with GitHub Actions)
+- [x] Optional GitHub App-owned check-run workflow for same-repository PRs (requires App installation and `APP_ID` / `APP_PRIVATE_KEY` secrets; source is scanned as data only)
+- [ ] Cross-repository GitHub App installation/webhooks (post-MVP; requires installation in the target repository)
 - [x] Pull-request source scanning workflow (GitHub Actions scans `appsec/` on PRs)
 - [x] Inline workflow annotations generated from SARIF results
 - [x] Severity-based security gate (`--fail-on`; high/critical findings fail the PR scan job)
@@ -77,4 +78,4 @@ Before calling the CLI MVP production-ready:
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The local CLI quality gates have passed on main in subsequent CI runs; always verify the latest merged-main run before release. The PR scan workflow, severity gate, local baseline/suppression, guarded review-only AI patch proposals, local API/dashboard, project registry, opt-in scan history and usage counters, shared admin and per-user bearer tokens, project roles, membership management, user revocation, and dedicated GitHub Checks API reporting are implemented. Cross-repository GitHub App installation/webhooks, hosted identity, and multi-tenant SaaS remain post-MVP. Local history and usage counters are opt-in via `APPSEC_DB_PATH`; usage counts are not billing.
+- The local CLI quality gates have passed on main in subsequent CI runs; always verify the latest merged-main run before release. The PR scan workflow, severity gate, local baseline/suppression, guarded review-only AI patch proposals, local API/dashboard, project registry, opt-in scan history and usage counters, shared admin and per-user bearer tokens, project roles, membership management, user revocation, standard GitHub Checks API reporting, and optional app-owned same-repository PR checks are implemented. Cross-repository GitHub App installation/webhooks, hosted identity, and multi-tenant SaaS remain post-MVP. Local history and usage counters are opt-in via `APPSEC_DB_PATH`; usage counts are not billing.

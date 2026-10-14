@@ -42,3 +42,6 @@ target-version = "py312"
 [tool.mypy]
 python_version = "3.12"
 strict = true
+
+[tool.setuptools.package-data]
+appsec = ["web/*.html", "web/*.css", "web/*.js"]

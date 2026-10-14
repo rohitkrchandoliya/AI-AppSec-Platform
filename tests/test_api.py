@@ -360,6 +360,30 @@ def test_project_team_roles_enforce_scan_and_history_access(tmp_path, monkeypatc
         assert status == 200
         assert {user["username"] for user in users["users"]} == {"alice", "bob"}
         assert all("token_hash" not in user for user in users["users"])
+
+        status, denied = _request(
+            base_url + "/projects/alpha/members",
+            method="POST",
+            body=json.dumps({"username": "alice", "role": "viewer"}).encode(),
+            token=alice_token,
+        )
+        assert status == 400
+        assert "last project administrator" in denied["error"]
+
+        status, denied = _request(
+            base_url + "/users/alice", method="DELETE", token=admin_token
+        )
+        assert status == 409
+        assert "last project administrator" in denied["error"]
+
+        status, removed = _request(
+            base_url + "/users/bob", method="DELETE", token=admin_token
+        )
+        assert status == 200
+        assert removed["removed"] is True
+
+        status, denied = _request(base_url + "/projects", token=bob_token)
+        assert status == 401
     finally:
         server.shutdown()
         server.server_close()

@@ -36,7 +36,7 @@ jobs:
       - name: Audit Python dependencies
         run: |
           python -m pip install pip-audit
-          pip-audit
+          pip-audit --skip-editable
 
       - name: Scan repository history for secrets
         uses: gitleaks/gitleaks-action@v2

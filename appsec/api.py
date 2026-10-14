@@ -5,19 +5,28 @@ import hmac
 import ipaddress
 import json
 import os
+import secrets
 import sqlite3
 import tempfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path, PurePosixPath
 from typing import Any
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 from appsec.findings import normalize_findings
 from appsec.history import (
+    add_project_member,
     create_project,
+    create_user,
+    find_user_by_token,
     get_scan,
+    has_users,
+    list_project_members,
     list_projects,
     list_scans,
+    list_users,
+    project_role,
+    remove_project_member,
     save_scan,
     usage_summary,
 )
@@ -112,9 +121,10 @@ def scan_files(files: dict[str, str]) -> dict[str, Any]:
 
 
 class _Handler(BaseHTTPRequestHandler):
-    """Small JSON handler with no filesystem-path input or write endpoint."""
+    """Local JSON handler with project-scoped role checks."""
 
     server_version = "AIAppSecLocalAPI/0.1"
+    _principal: dict[str, Any] = {}
 
     def _send_json(
         self,
@@ -126,6 +136,7 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         for name, value in (extra_headers or {}).items():
             self.send_header(name, value)
@@ -135,17 +146,53 @@ class _Handler(BaseHTTPRequestHandler):
     def _authorize(self, route: str) -> bool:
         token = os.getenv("APPSEC_API_TOKEN")
         public_routes = {"/health", "/", "/assets/dashboard.css", "/assets/dashboard.js"}
-        if not token or route in public_routes:
+        self._principal = {"is_admin": False, "shared_admin": False, "username": None}
+        if route in public_routes:
             return True
-        provided = self.headers.get("Authorization", "")
-        if hmac.compare_digest(provided, f"Bearer {token}"):
+
+        database = os.getenv("APPSEC_DB_PATH")
+        provided_header = self.headers.get("Authorization", "")
+        provided = provided_header[7:] if provided_header.startswith("Bearer ") else ""
+        if token and provided and hmac.compare_digest(provided, token):
+            self._principal = {"is_admin": True, "shared_admin": True, "username": None}
             return True
-        self._send_json(
-            401,
-            {"error": "Authentication required."},
-            {"WWW-Authenticate": "Bearer"},
-        )
-        return False
+
+        if database and provided:
+            try:
+                user = find_user_by_token(Path(database).expanduser(), provided)
+            except (OSError, sqlite3.Error):
+                user = None
+            if user is not None:
+                self._principal = {
+                    "is_admin": False,
+                    "shared_admin": False,
+                    "username": user["username"],
+                }
+                return True
+
+        auth_required = bool(token)
+        if database:
+            try:
+                auth_required = auth_required or has_users(Path(database).expanduser())
+            except (OSError, sqlite3.Error):
+                auth_required = True
+        if auth_required:
+            self._send_json(
+                401,
+                {"error": "Authentication required."},
+                {"WWW-Authenticate": "Bearer"},
+            )
+            return False
+
+        # Loopback-only single-user mode when no token/users are configured.
+        self._principal = {"is_admin": True, "shared_admin": False, "username": None}
+        return True
+
+    def _can_manage_project(self, database: Path, project_name: str) -> bool:
+        if self._principal.get("is_admin"):
+            return True
+        username = self._principal.get("username")
+        return isinstance(username, str) and project_role(database, project_name, username) == "admin"
 
     def _send_asset(self, name: str) -> None:
         assets = {

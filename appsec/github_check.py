@@ -161,7 +161,10 @@ def create_check_run(sarif_path: Path) -> dict[str, Any]:
     )
     try:
         with urlopen(request, timeout=20) as response:
-            return json.loads(response.read().decode("utf-8"))
+            result = json.loads(response.read().decode("utf-8"))
+            if not isinstance(result, dict):
+                raise RuntimeError("GitHub Checks API returned an unexpected response.")
+            return result
     except HTTPError as exc:
         raise RuntimeError(f"GitHub Checks API returned HTTP {exc.code}.") from exc
     except (URLError, TimeoutError, OSError) as exc:

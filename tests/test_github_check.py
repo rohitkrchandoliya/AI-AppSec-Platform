@@ -54,3 +54,47 @@ def test_annotation_rejects_path_traversal() -> None:
 def test_check_payload_rejects_invalid_sarif_structure() -> None:
     with pytest.raises(TypeError, match="runs list"):
         build_check_payload({}, "c" * 40)
+
+
+
+def test_create_check_run_uses_scoped_token_and_head_sha(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from appsec import github_check
+
+    sarif_path = tmp_path / "results.sarif"
+    sarif_path.write_text(
+        json.dumps({"version": "2.1.0", "runs": [{"results": [sarif_result(0)]}]}),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("APPSEC_GITHUB_TOKEN", "app-token")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+    monkeypatch.setenv("APPSEC_HEAD_SHA", "d" * 40)
+    captured: dict[str, object] = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def read(self) -> bytes:
+            return b'{"html_url":"https://github.com/owner/repo/runs/1"}'
+
+    def fake_urlopen(request, timeout: float):
+        captured["url"] = request.full_url
+        captured["headers"] = request.headers
+        captured["payload"] = json.loads(request.data.decode("utf-8"))
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(github_check, "urlopen", fake_urlopen)
+
+    result = github_check.create_check_run(sarif_path)
+
+    assert result["html_url"].endswith("/runs/1")
+    assert captured["url"] == "https://api.github.com/repos/owner/repo/check-runs"
+    assert captured["payload"]["head_sha"] == "d" * 40
+    assert captured["payload"]["conclusion"] == "failure"
+    assert captured["headers"]["Authorization"] == "Bearer app-token"

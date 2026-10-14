@@ -36,9 +36,15 @@ def emit_annotations(document: dict[str, Any]) -> int:
             if not isinstance(result, dict):
                 continue
             level = result.get("level", "warning")
-            command = "error" if level == "error" else "warning" if level == "warning" else "notice"
+            command = (
+                "error" if level == "error" else "warning" if level == "warning" else "notice"
+            )
             message_obj = result.get("message", {})
-            message = message_obj.get("text", "Security finding") if isinstance(message_obj, dict) else "Security finding"
+            message = (
+                message_obj.get("text", "Security finding")
+                if isinstance(message_obj, dict)
+                else "Security finding"
+            )
             rule_id = str(result.get("ruleId", "APPSEC"))
             locations = result.get("locations", [])
             properties = ""

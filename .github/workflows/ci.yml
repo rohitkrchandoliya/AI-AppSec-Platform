@@ -40,10 +40,16 @@ jobs:
           uv pip install --python .venv/bin/python pip-audit==2.10.1
           .venv/bin/pip-audit --skip-editable
 
-      - name: Scan repository history for secrets
+      - name: Scan pull request changes for secrets
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Audit full Git history for secrets
+        run: |
+          GITLEAKS_BIN="$(find /tmp -type f -path '/tmp/gitleaks-*/gitleaks' -perm -111 -print -quit)"
+          test -n "$GITLEAKS_BIN"
+          "$GITLEAKS_BIN" detect --source . --redact --exit-code 1 --log-opts="--all"
 
       - name: Build production Docker image
         run: docker build --pull --tag ai-appsec-platform:ci .

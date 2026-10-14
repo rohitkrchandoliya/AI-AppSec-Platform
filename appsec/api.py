@@ -262,7 +262,11 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send_json(200, {"users": list_users(db_path)})
             elif route == "/projects":
                 self._send_json(
-                    200, {"projects": list_projects(db_path, username=username_filter)}
+                    200,
+                    {
+                        "projects": list_projects(db_path, username=username_filter),
+                        "is_admin": bool(self._principal.get("is_admin")),
+                    },
                 )
             elif route == "/history":
                 query = parse_qs(parsed.query)

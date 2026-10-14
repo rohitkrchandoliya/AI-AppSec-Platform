@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI AppSec Dashboard</title>
+  <link rel="stylesheet" href="/assets/dashboard.css">
+  <script src="/assets/dashboard.js" defer></script>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">AI APPSEC PLATFORM</p>
+    <h1>Source security dashboard</h1>
+    <p>Paste a JSON map of relative file paths to source text. Scanning runs locally on this machine.</p>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>Scan source</h2>
+      <label for="source-files">Source files JSON</label>
+      <textarea id="source-files" spellcheck="false" rows="12">{
+  "files": {
+    "src/app.py": "eval(user_input)\n"
+  }
+}</textarea>
+      <div class="actions">
+        <button id="scan-button" type="button">Run security scan</button>
+        <span id="status" role="status" aria-live="polite">Ready</span>
+      </div>
+    </section>
+    <section class="summary" aria-label="Scan summary">
+      <article class="metric"><span>Files scanned</span><strong id="files-count">—</strong></article>
+      <article class="metric"><span>Findings</span><strong id="findings-count">—</strong></article>
+      <article class="metric"><span>Dependencies</span><strong id="dependencies-count">—</strong></article>
+    </section>
+    <section class="panel">
+      <h2>Findings</h2>
+      <div id="findings" class="results"><p class="muted">Run a scan to see findings here.</p></div>
+    </section>
+    <section class="panel">
+      <h2>Dependency risk</h2>
+      <div id="dependency-risks" class="results"><p class="muted">Dependency information appears after a scan.</p></div>
+    </section>
+    <p class="footnote">This local dashboard has no authentication. Keep the API bound to loopback; do not expose it to a network.</p>
+  </main>
+</body>
+</html>

@@ -33,6 +33,19 @@
       <article class="metric"><span>Dependencies</span><strong id="dependencies-count">—</strong></article>
     </section>
     <section class="panel">
+      <h2>Projects and scan history</h2>
+      <div class="project-actions">
+        <label for="project-name">New project name</label>
+        <input id="project-name" type="text" maxlength="64" autocomplete="off" placeholder="e.g. my-service">
+        <button id="create-project" type="button">Create project</button>
+        <label for="project-select">Scan under project</label>
+        <select id="project-select"><option value="default">default</option></select>
+        <button id="refresh-history" type="button">Refresh history</button>
+      </div>
+      <p id="history-status" class="muted" role="status" aria-live="polite">History is optional; set APPSEC_DB_PATH when starting the API to enable it.</p>
+      <div id="history" class="results"></div>
+    </section>
+    <section class="panel">
       <h2>Findings</h2>
       <div id="findings" class="results"><p class="muted">Run a scan to see findings here.</p></div>
     </section>

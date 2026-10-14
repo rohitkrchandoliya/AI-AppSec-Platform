@@ -1,0 +1,14 @@
+name: Trusted AI AppSec Check Run
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  appsec:
+    uses: ./.github/workflows/reusable-appsec-scan.yml

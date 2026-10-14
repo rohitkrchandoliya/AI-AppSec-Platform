@@ -296,8 +296,8 @@ class _Handler(BaseHTTPRequestHandler):
 def create_server(host: str = "127.0.0.1", port: int = 8765) -> ThreadingHTTPServer:
     """Create the unauthenticated local API server, refusing non-loopback binds."""
     token = os.getenv("APPSEC_API_TOKEN")
-    if token is not None and len(token) < 32:
-        raise ValueError("APPSEC_API_TOKEN must be at least 32 characters long.")
+    if token is not None and (len(token) < 32 or not token.isascii()):
+        raise ValueError("APPSEC_API_TOKEN must be at least 32 ASCII characters long.")
     if host == "localhost":
         pass
     else:

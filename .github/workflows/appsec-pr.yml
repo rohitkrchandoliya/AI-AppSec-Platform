@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  checks: write
 
 jobs:
   scan:
@@ -28,7 +29,65 @@ jobs:
           uv sync --locked --all-extras
 
       - name: Scan application code and write SARIF
+        id: scan
         run: uv run --locked appsec scan appsec --sarif --fail-on high > appsec-results.sarif
+
+      # Same-repository PRs get a dedicated check run. Fork PR tokens are read-only,
+      # so fork PRs rely on the normal workflow status and escaped annotations.
+      - name: Publish AI AppSec check run
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        env:
+          SARIF_PATH: appsec-results.sarif
+        with:
+          script: |
+            const fs = require('fs');
+            const scanOutcome = '${{ steps.scan.outcome }}';
+            let reportValid = false;
+            let total = 0;
+            const counts = { error: 0, warning: 0, note: 0, other: 0 };
+            let parseProblem = 'SARIF report was not produced.';
+            if (fs.existsSync(process.env.SARIF_PATH)) {
+              try {
+                const sarif = JSON.parse(fs.readFileSync(process.env.SARIF_PATH, 'utf8'));
+                const results = (sarif.runs || []).flatMap(run => run.results || []);
+                total = results.length;
+                for (const result of results) {
+                  const level = result.level || 'warning';
+                  if (Object.prototype.hasOwnProperty.call(counts, level)) counts[level] += 1;
+                  else counts.other += 1;
+                }
+                reportValid = true;
+              } catch (error) {
+                parseProblem = 'SARIF report exists but could not be parsed as valid JSON.';
+              }
+            }
+            const conclusion = scanOutcome === 'success' && reportValid ? 'success' : 'failure';
+            const summary = [
+              '## AI AppSec security gate',
+              '',
+              reportValid ? 'SARIF report parsed successfully. **' + total + ' finding(s)** reported.' : parseProblem,
+              '',
+              '- Error: ' + counts.error,
+              '- Warning: ' + counts.warning,
+              '- Note: ' + counts.note,
+              '- Other levels: ' + counts.other,
+              '',
+              scanOutcome === 'success' ? 'The configured severity gate passed.' : 'The scan step failed or found a high/critical issue. Review workflow annotations and the SARIF artifact.'
+            ].join('\n');
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'AI AppSec Security Gate',
+              head_sha: context.payload.pull_request.head.sha,
+              status: 'completed',
+              conclusion: conclusion,
+              details_url: context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId,
+              output: {
+                title: conclusion === 'success' ? 'Security gate passed' : 'Security gate failed',
+                summary: summary
+              }
+            });
 
       - name: Emit SARIF findings as workflow annotations
         if: always() && hashFiles('appsec-results.sarif') != ''

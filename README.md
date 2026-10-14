@@ -32,31 +32,31 @@ uv run --locked appsec scan ./path-to-project
 Run a human-readable scan:
 
 ```bash
-appsec scan ./path-to-project
+uv run --locked appsec scan ./path-to-project
 ```
 
 Export JSON:
 
 ```bash
-appsec scan ./path-to-project --json
+uv run --locked appsec scan ./path-to-project --json
 ```
 
 Export SARIF 2.1.0:
 
 ```bash
-appsec scan ./path-to-project --sarif
+uv run --locked appsec scan ./path-to-project --sarif
 ```
 
 Audit exact-pinned Python dependencies against OSV (requires network access):
 
 ```bash
-appsec scan ./path-to-project --audit-dependencies --json
+uv run --locked appsec scan ./path-to-project --audit-dependencies --json
 ```
 
 Export a CycloneDX SBOM:
 
 ```bash
-appsec scan ./path-to-project --sbom
+uv run --locked appsec scan ./path-to-project --sbom
 ```
 
 ### Optional AI explanations
@@ -69,8 +69,8 @@ export OPENAI_API_KEY="your-key"
 export OPENAI_MODEL="gpt-4.1-mini"
 export OPENAI_BASE_URL="https://api.openai.com/v1"
 
-appsec scan ./path-to-project --explain
-appsec scan ./path-to-project --json --explain
+uv run --locked appsec scan ./path-to-project --explain
+uv run --locked appsec scan ./path-to-project --json --explain
 ```
 
 **Privacy note:** `--explain` is opt-in. It sends finding metadata and a small redacted source window to the configured endpoint. Review your organization's data-handling policy before using it with private repositories. The implementation redacts recognized secret patterns, but no redaction system can guarantee that every sensitive value is removed. AI output is untrusted, is checked against the finding identity and supplied references, and must be reviewed by a developer. `--explain` cannot be combined with `--sarif` or `--sbom`.

@@ -60,7 +60,9 @@ def validate_project_name(name: Any) -> str:
         raise TypeError("Project name must be a string.")
     normalized = name.strip()
     if not _PROJECT_NAME.fullmatch(normalized):
-        raise ValueError("Project name must be 1-64 safe letters, numbers, spaces, '.', '_' or '-'.")
+        raise ValueError(
+        "Project name must be 1-64 safe letters, numbers, spaces, '.', '_' or '-'.")
+    )
     return normalized
 
 
@@ -127,7 +129,9 @@ def save_scan(
         return int(cursor.lastrowid)
 
 
-def list_scans(path: Path, *, project_name: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+def list_scans(
+    path: Path, *, project_name: str | None = None, limit: int = 50
+) -> list[dict[str, Any]]:
     """List recent scan summaries with a hard upper bound."""
     bounded_limit = max(1, min(int(limit), 100))
     with _connect(path) as connection:

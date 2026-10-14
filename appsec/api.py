@@ -18,6 +18,7 @@ from appsec.history import (
     add_project_member,
     create_project,
     create_user,
+    delete_user,
     find_user_by_token,
     get_scan,
     has_users,
@@ -432,6 +433,33 @@ class _Handler(BaseHTTPRequestHandler):
     def do_DELETE(self) -> None:
         route = urlsplit(self.path).path
         parts = route.strip("/").split("/")
+        if not self._authorize(route):
+            return
+        database = os.getenv("APPSEC_DB_PATH")
+        if not database:
+            self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable local team management."})
+            return
+        db_path = Path(database).expanduser()
+
+        if len(parts) == 2 and parts[0] == "users":
+            if not self._principal.get("shared_admin"):
+                self._send_json(403, {"error": "Only the configured administrator can delete users."})
+                return
+            username = unquote(parts[1])
+            try:
+                removed = delete_user(db_path, username)
+            except ValueError as exc:
+                self._send_json(409, {"error": str(exc)})
+                return
+            except (OSError, sqlite3.Error):
+                self._send_json(500, {"error": "Could not revoke user access."})
+                return
+            if not removed:
+                self._send_json(404, {"error": "User not found."})
+                return
+            self._send_json(200, {"removed": True, "username": username})
+            return
+
         if not (
             len(parts) == 4
             and parts[0] == "projects"
@@ -439,13 +467,6 @@ class _Handler(BaseHTTPRequestHandler):
         ):
             self._send_json(404, {"error": "Not found."})
             return
-        if not self._authorize(route):
-            return
-        database = os.getenv("APPSEC_DB_PATH")
-        if not database:
-            self._send_json(503, {"error": "Set APPSEC_DB_PATH to enable project teams."})
-            return
-        db_path = Path(database).expanduser()
         project_name = unquote(parts[1])
         username = unquote(parts[3])
         if not self._can_manage_project(db_path, project_name):

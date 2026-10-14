@@ -30,3 +30,11 @@ jobs:
 
       - name: Type check
         run: mypy appsec
+
+      - name: Build production Docker image
+        run: docker build --pull --tag ai-appsec-platform:ci .
+
+      - name: Smoke-test Docker CLI as non-root
+        run: |
+          docker run --rm ai-appsec-platform:ci version
+          test "$(docker image inspect ai-appsec-platform:ci --format '{{.Config.User}}')" = "10001:10001"

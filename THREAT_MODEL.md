@@ -41,7 +41,7 @@ The MVP is a developer aid, not a complete security assurance system or a hosted
 - Dependency inventory and risk scoring currently focus on Python manifests/lockfiles and exact-pinned versions; they do not resolve every environment marker or transitive dependency.
 - OSV lookups depend on network availability and third-party advisory quality. Results should be reviewed before gating releases.
 - AI explanations require explicit configuration and an external API key, send a bounded source window after known-pattern redaction, and may still disclose sensitive data that the redactor does not recognize. Review privacy policy before enabling them.
-- There is no hosted API/dashboard, authentication, authorization, tenant isolation, or service-level operational control in the current MVP.
+- There is no hosted API/dashboard deployment, external identity provider, tenant isolation, rate limiting, or service-level operational control. The optional local API supports shared administrator and per-user tokens with project-scoped roles, but remains loopback-only.
 - The scanner should not be run with elevated privileges on untrusted repositories. Run it in a least-privilege environment and avoid mounting sensitive host paths into CI jobs.
 
 ## Safe operating guidance
@@ -69,6 +69,6 @@ The optional `appsec-api` service accepts source text as a JSON file map; it doe
 
 The browser dashboard serves only packaged static assets with a restrictive Content Security Policy, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and a no-referrer policy. It uses DOM text insertion rather than rendering scan results as HTML. The API does not enable CORS.
 
-Persistent history is disabled unless `APPSEC_DB_PATH` is set. When enabled, SQLite stores project names, timestamps, usage counters, scan result JSON, and redacted finding evidence/metadata; it does not store the submitted full source files. Finding snippets may still reveal sensitive code, so protect the database file and remove it when no longer needed. The service is local-only and has no multi-user authorization or billing.
+Persistent history is disabled unless `APPSEC_DB_PATH` is set. When enabled, SQLite stores project names, timestamps, usage counters, scan result JSON, and redacted finding evidence/metadata; it does not store the submitted full source files. Finding snippets may still reveal sensitive code, so protect the database file and remove it when no longer needed. The service is local-only. Project-scoped roles and per-user tokens are supported, but there is no hosted identity provider, multi-tenant SaaS isolation, or billing.
 
 AI patch proposals are untrusted suggestions. The application validates finding identity, relative path, single-file diff headers, hunk presence, size, and likely secret patterns. It never applies the proposal to the working tree. Developers must review the diff and run their own tests before applying any changes.

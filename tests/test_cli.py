@@ -79,3 +79,40 @@ def test_json_report_redacts_inline_secret_from_sast_evidence(tmp_path: Path) ->
     payload = json.loads(result.stdout)
     finding = next(item for item in payload["findings"] if item["rule_id"] == "PYSEC-001")
     assert "REDACTED" in finding["evidence"]
+
+
+
+def test_fail_on_high_exits_nonzero_for_high_finding(tmp_path: Path) -> None:
+    (tmp_path / "unsafe.py").write_text("eval(user_input)\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["scan", str(tmp_path), "--json", "--fail-on", "high"])
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout.split("Security gate failed:")[0])
+    assert any(item["severity"] == "high" for item in payload["findings"])
+
+
+def test_fail_on_high_allows_lower_severity_findings(tmp_path: Path) -> None:
+    (tmp_path / "unsafe.js").write_text("element.innerHTML = input;\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["scan", str(tmp_path), "--fail-on", "critical"])
+
+    assert result.exit_code == 0
+    assert "Security gate failed" not in result.stdout
+
+
+def test_fail_on_gate_preserves_sarif_output(tmp_path: Path) -> None:
+    (tmp_path / "unsafe.py").write_text("eval(user_input)\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["scan", str(tmp_path), "--sarif", "--fail-on", "high"])
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout.split("Security gate failed:")[0])
+    assert payload["version"] == "2.1.0"
+    assert payload["runs"][0]["results"][0]["ruleId"] == "PYSEC-001"
+
+
+def test_fail_on_rejects_invalid_severity(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["scan", str(tmp_path), "--fail-on", "blocker"])
+
+    assert result.exit_code != 0

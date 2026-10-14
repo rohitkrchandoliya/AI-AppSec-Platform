@@ -12,7 +12,7 @@ A developer-first application security scanner that combines deterministic sourc
 - **SBOM export:** `--sbom` emits CycloneDX 1.5 JSON from exact-pinned Python dependencies; unresolved version ranges are intentionally excluded.
 - **Dependency risk scoring:** each discovered dependency receives a deterministic 0–100 risk score based on version pinning and OSV-derived advisory severity/count.
 - **Finding normalization:** root-relative paths where possible, deterministic sorting, and duplicate removal.
-- **CLI reports:** human-readable output, JSON (`--json`), and SARIF 2.1.0 (`--sarif`).
+- **CLI reports:** human-readable output, JSON (`--json`), and SARIF 2.1.0 (`--sarif`). The optional `--fail-on info|low|medium|high|critical` flag exits with status 1 when a finding meets or exceeds the selected severity, enabling CI security gates while keeping JSON/SARIF on stdout.
 - **Optional AI explanations:** `--explain` asks a configured OpenAI-compatible chat-completions endpoint for explanations, exploitability context, remediation guidance, confidence, and limitations. The deterministic scanner findings remain the source of truth.
 - **Quality checks:** GitHub Actions CI runs Ruff, pytest, and mypy.
 
@@ -108,7 +108,7 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 - Secret patterns do not cover every provider, token type, encoding, or credential storage pattern.
 - Dependency inventory, OSV advisory lookup, risk scoring, and SBOM generation currently cover Python manifests and exact-pinned versions only; they do not resolve packages, evaluate every environment marker, or analyze JavaScript, Rust, Go, or other ecosystems.
 - AI reasoning is advisory, may be wrong, requires a configured external provider, and is not a substitute for security review. The current integration does not generate or apply code patches.
-- GitHub PR integration, API, dashboard, authentication, and team workflows are not implemented yet.
+- The initial GitHub Actions PR gate scans the `appsec/` source tree, fails on high/critical findings, and uploads a SARIF artifact. GitHub App installation, inline PR annotations/check-run reporting, baselines/suppressions, API, dashboard, authentication, and team workflows are not implemented yet.
 - Production readiness still requires dependency pinning/lock strategy, reproducible builds, CI security checks, repository-history review, and a green final release verification on the merged main branch.
 
 ## License

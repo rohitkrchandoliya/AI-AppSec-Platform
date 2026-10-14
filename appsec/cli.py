@@ -9,7 +9,7 @@ from rich.console import Console
 from appsec import __version__
 from appsec.ai_provider import OpenAICompatibleReasoningProvider
 from appsec.findings import normalize_findings
-from appsec.models import DependencyRisk, Finding, ScanResult
+from appsec.models import DependencyRisk, Finding, ScanResult, Severity
 from appsec.reasoning import GuardedReasoningProvider, build_reasoning_request
 from appsec.redaction import redact_sensitive_text
 from appsec.risk import dependency_risk_score
@@ -22,6 +22,7 @@ from appsec.scanners.dependencies import discover_dependencies
 
 app = typer.Typer(help="AI-assisted application security scanner.")
 console = Console()
+gate_console = Console(stderr=True)
 
 
 @app.command()
@@ -48,6 +49,26 @@ def _source_context(root: Path, finding: Finding) -> list[str]:
         f"{line_number}: {redact_sensitive_text(lines[line_number - 1])}"
         for line_number in range(first, last + 1)
     ]
+
+
+def _enforce_severity_gate(findings: list[Finding], threshold: Severity | None) -> None:
+    """Exit unsuccessfully when any finding meets or exceeds the configured severity."""
+    if threshold is None:
+        return
+    rank = {
+        Severity.INFO: 0,
+        Severity.LOW: 1,
+        Severity.MEDIUM: 2,
+        Severity.HIGH: 3,
+        Severity.CRITICAL: 4,
+    }
+    blocking = [finding for finding in findings if rank[finding.severity] >= rank[threshold]]
+    if blocking:
+        gate_console.print(
+            f"[bold red]Security gate failed:[/bold red] {len(blocking)} finding(s) "
+            f"at or above {threshold.value} severity."
+        )
+        raise typer.Exit(code=1)
 
 
 def _explain_findings(root: Path, findings: list[Finding]) -> list[dict[str, object]]:
@@ -87,6 +108,12 @@ def scan(
     ),
     sbom_output: bool = typer.Option(
         False, "--sbom", help="Emit a CycloneDX 1.5 SBOM for exact-pinned Python dependencies."
+    ),
+    fail_on: Severity | None = typer.Option(  # noqa: B008
+        None,
+        "--fail-on",
+        case_sensitive=False,
+        help="Exit with status 1 when any finding meets or exceeds this severity.",
     ),
     explain: bool = typer.Option(
         False,
@@ -155,12 +182,14 @@ def scan(
         return
     if sarif_output:
         typer.echo(sarif_json(result))
+        _enforce_severity_gate(findings, fail_on)
         return
     if json_output:
         payload = result.model_dump(mode="json")
         if explain:
             payload["ai_reasoning"] = explanations
         typer.echo(json.dumps(payload, indent=2))
+        _enforce_severity_gate(findings, fail_on)
         return
 
     console.print(f"Scanned [bold]{path.resolve()}[/bold]")
@@ -181,3 +210,5 @@ def scan(
             console.print(f"  Exploitability: {explanation['exploitability']}")
             console.print(f"  Remediation: {explanation['remediation']}")
             console.print(f"  Confidence: {explanation['confidence']}")
+
+    _enforce_severity_gate(findings, fail_on)

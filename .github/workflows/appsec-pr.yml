@@ -1,0 +1,40 @@
+name: AppSec Pull Request Gate
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Scan application source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dependencies
+        run: |
+          python -m pip install uv==0.13.0
+          uv sync --locked --all-extras
+
+      - name: Scan application code and write SARIF
+        run: uv run --locked appsec scan appsec --sarif --fail-on high > appsec-results.sarif
+
+      - name: Upload SARIF report
+        if: always() && hashFiles('appsec-results.sarif') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: appsec-sarif-report
+          path: appsec-results.sarif
+          if-no-files-found: error
+          retention-days: 14

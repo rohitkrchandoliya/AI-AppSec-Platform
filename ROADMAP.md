@@ -42,9 +42,9 @@ The current release target is a tested local CLI MVP for deterministic source sc
 
 ## Phase 4 — GitHub Developer Workflow
 - [ ] GitHub App integration
-- [ ] Pull-request scanning
+- [x] Pull-request source scanning workflow (GitHub Actions scans `appsec/` on PRs)
 - [ ] Inline findings
-- [ ] Security gate
+- [x] Severity-based security gate (`--fail-on`; high/critical findings fail the PR scan job)
 - [ ] Baseline/suppression support
 - [ ] Check-run reporting
 
@@ -76,4 +76,4 @@ Before calling the CLI MVP production-ready:
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). This does not mean the broader platform is complete: AI patch proposals, GitHub App/PR workflows, API/dashboard, authentication, and team features remain roadmap work.
+- The listed quality gates for the local CLI MVP passed on main SHA `8b928bb5f4084e1e638d51cfee9e3bd481e5259e` (CI run #149). The initial PR scan workflow and severity gate are now implemented separately; this does not yet provide a GitHub App, inline annotations/check-run reporting, baselines/suppressions, API/dashboard, authentication, or team features.

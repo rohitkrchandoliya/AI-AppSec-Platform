@@ -41,7 +41,7 @@ The current release target is a tested local CLI MVP for deterministic source sc
 - [x] Guardrails for finding identity, supplied references, and unsupported CVE/CWE identifiers
 
 ## Phase 4 — GitHub Developer Workflow
-- [ ] GitHub App integration
+- [x] Optional GitHub App check-run integration for same-repository PRs (requires installed App and `APP_ID` / `APP_PRIVATE_KEY` secrets; PR source is scanned as data only)
 - [x] Pull-request source scanning workflow (GitHub Actions scans `appsec/` on PRs)
 - [x] Inline workflow annotations generated from SARIF results
 - [x] Severity-based security gate (`--fail-on`; high/critical findings fail the PR scan job)
@@ -53,7 +53,7 @@ The current release target is a tested local CLI MVP for deterministic source sc
 - [x] Local web dashboard for source submission, findings, and dependency risk
 - [x] Local project registry and project-scoped scan history
 - [x] SQLite-backed historical scan results and findings
-- [ ] Team workflows
+- [x] Project membership and role-scoped API workflows (local SQLite)
 - [x] Optional shared bearer-token authentication for local API data routes
 - [x] Per-user bearer tokens, project roles, membership management, and user revocation (local SQLite)
 - [x] Local usage counters (scan count, files, findings, source bytes; no billing)
@@ -77,4 +77,4 @@ Before calling the CLI MVP production-ready:
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed; verify the post-merge run.
 - AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
-- The local CLI quality gates have passed on main in subsequent CI runs; always verify the latest merged-main run before release. The PR scan workflow, severity gate, local baseline/suppression, guarded review-only AI patch proposals, local API/dashboard, project registry, opt-in scan history and usage counters, optional shared bearer-token authentication, and dedicated GitHub Checks API reporting are implemented. The custom GitHub App installation is not required for this standard workflow. Per-user authorization, roles, and team workflows remain future scope. Local history and usage counters are opt-in via `APPSEC_DB_PATH`; usage counts are not billing.
+- The CLI release gates and local product layer are implemented. The standard PR gate and dedicated GitHub Checks API reporting work without custom App credentials. An optional app-owned check workflow is included for same-repository PRs and requires a repository administrator to install a GitHub App and configure `APP_ID` / `APP_PRIVATE_KEY`. Local per-user tokens, project roles, membership management, and user revocation are implemented; this remains a loopback-only local-first service, not a hosted identity provider. Local history and usage counters are opt-in via `APPSEC_DB_PATH`; usage counts are not billing. Verify the latest post-merge CI run before calling a release complete.

@@ -98,7 +98,7 @@ Persistence is opt-in. To enable project management, scan history, and local usa
 APPSEC_DB_PATH=.appsec-state.sqlite3 uv run --locked appsec-api --port 8765
 ```
 
-This enables `POST /projects`, `GET /projects`, `GET /history?project=NAME`, `GET /history/SCAN_ID`, and `GET /usage`. To save a scan under a named project, include `"project": "demo"` alongside the `"files"` map in the `POST /scan` JSON body. The SQLite database stores scan results and redacted finding evidence/metadata, not the submitted full source files. Protect the database file. The local API has no authentication or multi-user access controls and is not suitable for network exposure.
+With `APPSEC_API_TOKEN` set, data endpoints require `Authorization: Bearer <token>`; the dashboard accepts the token in its password field and does not persist it. This enables `POST /projects`, `GET /projects`, `GET /history?project=NAME`, `GET /history/SCAN_ID`, and `GET /usage`. To save a scan under a named project, include `"project": "demo"` alongside the `"files"` map in the `POST /scan` JSON body. The SQLite database stores scan results and redacted finding evidence/metadata, not the submitted full source files. Protect the database file. The local API is loopback-only. Optional shared bearer-token authentication can be enabled with `APPSEC_API_TOKEN` (minimum 32 ASCII characters); the dashboard token field keeps it in page memory only. This is not per-user authorization, team access control, or a substitute for TLS and deployment hardening.
 
 ## How it works
 

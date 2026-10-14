@@ -16,13 +16,13 @@ def _validate_document(document: Any, label: str) -> dict[str, Any]:
         raise ValueError(f"{label} is not a valid SARIF 2.1.0 document.")
     runs = document.get("runs")
     if not isinstance(runs, list):
-        raise ValueError(f"{label} must contain a runs list.")
+        raise TypeError(f"{label} must contain a runs list.")
     for run in runs:
         if not isinstance(run, dict) or not isinstance(run.get("results", []), list):
-            raise ValueError(f"{label} contains an invalid SARIF run.")
+            raise TypeError(f"{label} contains an invalid SARIF run.")
         for result in run.get("results", []):
             if not isinstance(result, dict):
-                raise ValueError(f"{label} contains an invalid SARIF result.")
+                raise TypeError(f"{label} contains an invalid SARIF result.")
             fingerprint = (result.get("partialFingerprints") or {}).get("stableFindingId")
             if not isinstance(fingerprint, str) or not fingerprint:
                 raise ValueError(f"{label} contains a finding without a stable fingerprint.")
@@ -99,7 +99,7 @@ def main() -> int:
             f"new high/critical findings: {len(blocking)}"
         )
         return 1 if blocking else 0
-    except Exception as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError, RuntimeError) as exc:
         # Preserve a valid failure report so the trusted workflow can publish a failed check.
         failure_report = {
             "$schema": "https://json.schemastore.org/sarif-2.1.0.json",

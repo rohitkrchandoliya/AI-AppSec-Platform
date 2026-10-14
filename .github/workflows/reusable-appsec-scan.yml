@@ -105,6 +105,7 @@ jobs:
 
               remaining = fingerprint_counts(base)
               new_results = []
+              new_fingerprint_counts = collections.Counter()
               for run in head['runs']:
                   for result in run.get('results', []):
                       fingerprint = (result.get('partialFingerprints') or {}).get('stableFindingId')
@@ -112,16 +113,21 @@ jobs:
                           remaining[fingerprint] -= 1
                       else:
                           new_results.append(result)
+                          new_fingerprint_counts[fingerprint] += 1
 
               delta = dict(head)
               delta['runs'] = []
               for run in head['runs']:
                   copied_run = dict(run)
-                  copied_run['results'] = [
-                      result for result in run.get('results', []) if result in new_results
-                  ]
+                  copied_results = []
+                  for result in run.get('results', []):
+                      fingerprint = (result.get('partialFingerprints') or {}).get('stableFindingId')
+                      if new_fingerprint_counts[fingerprint] > 0:
+                          copied_results.append(result)
+                          new_fingerprint_counts[fingerprint] -= 1
+                  copied_run['results'] = copied_results
                   delta['runs'].append(copied_run)
-              output_path.write_text(json.dumps(delta, indent=2) + '\\n', encoding='utf-8')
+              output_path.write_text(json.dumps(delta, indent=2) + '\n', encoding='utf-8')
               blocking = [result for result in new_results if result.get('level') == 'error']
               print(f'New findings: {len(new_results)}; new high/critical findings: {len(blocking)}')
               if blocking:

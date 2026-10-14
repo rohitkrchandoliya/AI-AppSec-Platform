@@ -2,7 +2,7 @@
 
 ## MVP release scope
 
-The current release target is a tested local CLI MVP for deterministic source scanning, secret detection, Python dependency inventory/advisories, and machine-readable reports. It is not yet a complete AI reasoning product, GitHub App, or hosted SaaS platform. Do not describe pending phases as implemented.
+The current release target is a tested local CLI MVP for deterministic source scanning, secret detection, Python dependency inventory/advisories, machine-readable reports, and opt-in AI explanations. It is not a GitHub App or hosted SaaS platform. Do not describe pending phases as implemented.
 
 ## Phase 0 — Foundation
 - [x] Repository structure
@@ -33,12 +33,12 @@ The current release target is a tested local CLI MVP for deterministic source sc
 
 ## Phase 3 — AI Security Reasoning
 - [x] Provider-neutral reasoning request/response contract
-- [ ] Actual AI provider adapter
-- [ ] Finding explanation integrated into scan workflow
-- [ ] Exploitability/context analysis integrated into scan workflow
-- [ ] Remediation generation integrated into scan workflow
+- [x] OpenAI-compatible chat-completions adapter (opt-in)
+- [x] Finding explanation integrated into CLI (`--explain`)
+- [x] Exploitability/context analysis integrated into CLI
+- [x] Remediation guidance integrated into CLI
 - [ ] Patch proposal generation
-- [ ] End-to-end guardrails for AI-generated output
+- [x] Guardrails for finding identity, supplied references, and unsupported CVE/CWE identifiers
 
 ## Phase 4 — GitHub Developer Workflow
 - [ ] GitHub App integration
@@ -61,7 +61,7 @@ The current release target is a tested local CLI MVP for deterministic source sc
 
 Before calling the CLI MVP production-ready:
 
-- [x] Automated tests for scanner and report behavior
+- [x] Automated tests for scanner and report behavior (CI verification pending)
 - [x] Deterministic scanner fixtures
 - [ ] Verify no secrets exist in repository history
 - [ ] Dependency pinning/lock strategy
@@ -75,4 +75,5 @@ Before calling the CLI MVP production-ready:
 
 - A CI run is considered green only when Ruff, pytest, and mypy all pass on the commit being released.
 - A pull request being merged is not evidence that its CI passed.
+- AI explanations are opt-in, can be incorrect, and must not replace deterministic findings or developer review.
 - Do not claim production readiness while any required quality gate remains unchecked.

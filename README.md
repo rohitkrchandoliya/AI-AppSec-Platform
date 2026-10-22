@@ -165,7 +165,7 @@ The SARIF `rulesRun` property reports the combined configured rule counts for th
 
 The default GitHub Actions security workflow and reusable workflow do not require a GitHub App installation. App-owned check runs are an optional enhancement and remain inactive until a repository administrator completes the setup below. This is configuration, not missing scanner implementation.
 
-### Optional GitHub App check_run setup
+### Optional GitHub App check_run Setup
 
 Do this only if you want the check to be authored by your GitHub App rather than the standard GitHub Actions identity.
 

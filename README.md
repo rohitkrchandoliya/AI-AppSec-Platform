@@ -2,6 +2,10 @@
 
 A local-first application security platform with deterministic source-code and secret checks, normalized findings, machine-readable reports, guarded AI patch proposals, GitHub Actions PR checks, a local API/dashboard, opt-in SQLite history, and project-scoped team roles. It is not a hosted multi-tenant SaaS product.
 
+## Who This Is For
+
+This platform helps students and developers learn application security through safe, hands-on labs.
+
 ## Current implementation
 
 - **Python SAST:** AST-based rules for `eval()` / `exec()` and `subprocess.run(..., shell=True)`.

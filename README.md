@@ -4,7 +4,7 @@ A local-first application security platform with deterministic source-code and s
 
 ## Who This Is For
 
-This platform helps students learn application security.
+This platform helps students and developers learn application security through safe, hands-on labs.
 
 ## Current implementation
 
